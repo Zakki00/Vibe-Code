@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Vibe</title>
+<input id="p" size="60">
+<button onclick="kirim()">Kirim</button>
+<pre id="out"></pre>
+<script>
+  const ws = new WebSocket("ws://localhost:3000");
+  ws.onmessage = (e) => {
+    const m = JSON.parse(e.data);
+    if (m.type === "text") out.textContent += m.text;
+    if (m.type === "done") out.textContent += "\n\n";
+    if (m.type === "error") out.textContent += "\n[error] " + m.message;
+  };
+  function kirim() {
+    out.textContent += "\n> " + p.value + "\n";
+    ws.send(JSON.stringify({ prompt: p.value }));
+    p.value = "";
+  }
+</script>
