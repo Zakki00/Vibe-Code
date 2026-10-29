@@ -3,9 +3,14 @@ import http from "http";
 import { WebSocketServer } from "ws";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { randomUUID } from "crypto";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const APP_DIR = path.dirname(fileURLToPath(import.meta.url));
+const PROJECT_DIR = process.env.VIBE_PROJECT_DIR || process.cwd();
 
 const app = express();
-app.use(express.static("public"));
+app.use(express.static(path.join(APP_DIR, "client", "dist")));
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: "/ws" });
 
@@ -32,7 +37,7 @@ wss.on("connection", (ws) => {
         prompt,
         options: {
           model: "Vibe_Code",
-          cwd: cwd || process.cwd(),
+          cwd: cwd || PROJECT_DIR,
           includePartialMessages: true,
           resume: sessionId ?? undefined,
           canUseTool: (namaAlat, input) =>

@@ -1,9 +1,13 @@
 {
   "name": "vibe-app",
   "version": "1.0.0",
+  "bin": {
+  "vibe-app": "start.mjs"
+  },
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node start.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
