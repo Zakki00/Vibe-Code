@@ -1,4 +1,5 @@
-import { spawn, exec } from "node:child_process";
+#!/usr/bin/env node
+import { spawn, exec, execSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -31,7 +32,7 @@ function jalankanServer(nama, perintah, cwd, env = {}) {
     shell: true,
     cwd,
     env: { ...process.env, ...env },
-    stdio: "inherit",
+    stdio: ["ignore", "inherit", "inherit"],
   });
   p.on("exit", (kode) => console.log(`${nama} keluar dengan kode ${kode}`));
   proses.push(p);
@@ -40,14 +41,18 @@ function jalankanServer(nama, perintah, cwd, env = {}) {
 
 function hentikanSemuaServer() {
   for (const p of proses) {
-    if (p.pid) exec(`taskkill /pid ${p.pid} /T /F`);
+    if (p.pid) {
+      try {
+        execSync(`taskkill /pid ${p.pid} /T /F`, { stdio: "ignore" });
+      } catch {}
+    }
   }
 }
 
-process.on("SIGINT", () => {
-  hentikanSemuaServer();
-  setTimeout(() => process.exit(), 500);
-});
+process.on("exit", hentikanSemuaServer);
+for (const sinyal of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"]) {
+  process.on(sinyal, () => process.exit(0));
+}
 
 if (await aktif(ALAMAT)) {
   console.log(`Server sudah berjalan di ${ALAMAT}`);
@@ -63,14 +68,18 @@ if (!process.env.ANTHROPIC_AUTH_TOKEN) {
 if (await aktif(ALAMAT_ROUTER)) {
   console.log("9Router sudah menyala.");
 } else {
-  console.log("Menyalakan 9Router...");
-  jalankanServer("9router", "9router", APP_DIR);
-  if (!(await tunggu(ALAMAT_ROUTER, 20))) {
+  console.log("Menyalakan 9Router di latar belakang...");
+  spawn("9router --tray --no-browser --skip-update", {
+    shell: true,
+    stdio: "ignore",
+    detached: true,
+    windowsHide: true,
+  }).unref();
+  if (!(await tunggu(ALAMAT_ROUTER, 30))) {
     console.error(
       "9Router tidak merespons. Coba nyalakan manual dengan perintah: 9router",
     );
-    hentikanSemuaServer();
-    setTimeout(() => process.exit(1), 500);
+    process.exit(1);
   }
 }
 
@@ -79,10 +88,15 @@ jalankanServer("backend", "node server.mjs", APP_DIR, {
   VIBE_PROJECT_DIR: PROJECT_DIR,
   ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL || ALAMAT_ROUTER,
 });
+
+if (!(await tunggu(ALAMAT, 20))) {
+  console.error("Backend tidak merespons. Periksa pesan error di atas.");
+}
+
 jalankanServer("tampilan", "npm run dev", path.join(APP_DIR, "client"));
 
 if (await tunggu(ALAMAT_TAMPILAN, 20)) {
   exec(`start msedge --app=${ALAMAT_TAMPILAN}`);
 }
 console.log(`Tampilan: ${ALAMAT_TAMPILAN}  |  Backend: ${ALAMAT}`);
-console.log("Tekan Ctrl+C untuk menghentikan semuanya.");
+console.log("Tekan Ctrl+C untuk menghentikan backend dan tampilan.");
