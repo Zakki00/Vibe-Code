@@ -1,1 +1,28 @@
 @import "tailwindcss";
+
+/* Latar gelap sampai ke tepi jendela, supaya tidak ada area putih saat ukuran jendela diubah. */
+html,
+body,
+#root {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background-color: #171717;
+    color-scheme: dark;
+}
+
+/* Tetap bisa digulir, tetapi scrollbar disembunyikan. */
+.tanpa-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.tanpa-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Scrollbar tipis berwarna gelap (untuk blok kode yang digulir ke samping). */
+.scroll-halus {
+    scrollbar-width: thin;
+    scrollbar-color: #404040 transparent;
+}
