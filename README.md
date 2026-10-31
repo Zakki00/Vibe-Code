@@ -37,6 +37,14 @@ Jawaban dikirim kembali secara bertahap (streaming), sehingga tampil sedikit dem
 - Perintah seperti `/model`, `/clear`, dan `/project`
 - Satu perintah terminal yang menyalakan semuanya sekaligus
 
+**Fitur Lanjutan**
+
+1. Menambahkan fitur upload gambar
+2. Fitur untuk memperbaiki kalimat otomatis di input ketika user mengetik salah kalimat (contoh: "bgaimana" akan menjadi "bagaimana" ketika mencet spasi)
+3. Membuat tombol tambahan "Izinkan Selalu" ketika output meminta izin menjalankan atau membuat atau mengubah suatu file atau melakukan tindakan tertentu yang membutuhkan izin
+4. Ketika pesan yang panjang dikirimkan dari sisi input user akan diperpendek dan diberi tombol "Tampilkan Lebih Banyak" untuk melihat pesan yang panjang itu
+5. Ketika user mengirimkan pesan yang salah maka ada tombol "Edit Pesan" di samping pesan yang dikirim
+
 ## Teknologi
 
 | Bagian | Pilihan |
