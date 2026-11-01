@@ -55,6 +55,39 @@ const PERINTAH = [
 
 const MAKS_TINGGI_INPUT = 260; // sekitar 10 baris
 
+// Dictionary untuk auto-correct (Indonesian dan umum)
+const KAMUS_KOREKSI: Record<string, string> = {
+  // Indonesian
+  bgaimana: "bagaimana",
+  bgmn: "bagaimana",
+  apa: "apa",
+  knp: "kenapa",
+  krn: "karena",
+  dri: "dari",
+  yg: "yang",
+  dn: "dan",
+  jdi: "jadi",
+  tdk: "tidak",
+  gak: "gak", // keep as is, valid
+  sdh: "sudah",
+  blm: "belum",
+  hr: "hari",
+  tgl: "tanggal",
+  pd: "pada",
+  dr: "dari",
+  ke: "ke",
+  utk: "untuk",
+  kmrin: "kemarin",
+  bsk: "besok",
+  // Common typos
+  teh: "the",
+  adn: "and",
+  recieve: "receive",
+  occured: "occurred",
+  seperate: "separate",
+  definately: "definitely",
+};
+
 type Simpanan = Array<Record<string, unknown>>;
 const pulihkan = (daftar: Simpanan): Item[] =>
   daftar.map((x) =>
@@ -387,6 +420,21 @@ export default function App() {
     if (lolos.length > sisa) info(`Maksimal ${MAKS_LAMPIRAN} lampiran per pesan.`);
     const baru = await Promise.all(lolos.slice(0, Math.max(0, sisa)).map(bacaBerkas));
     setLampiran((p) => [...p, ...baru]);
+  }
+
+  function autoCorrect(teks: string): string {
+    const kata = teks.split(/\s+/);
+    const terakhir = kata[kata.length - 1]?.toLowerCase();
+
+    if (terakhir && KAMUS_KOREKSI[terakhir]) {
+      kata[kata.length - 1] = KAMUS_KOREKSI[terakhir];
+      const hasil = kata.join(" ");
+      if (hasil !== teks) {
+        info(`Auto-correct: "${terakhir}" → "${KAMUS_KOREKSI[terakhir]}"`);
+      }
+      return hasil;
+    }
+    return teks;
   }
 
   function berhenti() {
@@ -786,7 +834,16 @@ export default function App() {
             ref={inputRef}
             value={input}
             onChange={(e) => {
-              setInput(e.target.value);
+              const novoTexto = e.target.value;
+              const jaTerminavaComEspaco = novoTexto !== input && novoTexto.endsWith(" ");
+
+              if (jaTerminavaComEspaco) {
+                const corrigido = autoCorrect(novoTexto);
+                setInput(corrigido);
+              } else {
+                setInput(novoTexto);
+              }
+
               setIdxSaran(0);
               setPilihModel(null);
               setPilihSesi(null);
