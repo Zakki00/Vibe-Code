@@ -828,51 +828,57 @@ export default function App() {
               e.target.value = "";
             }}
           />
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={sibuk}
-            title="Lampirkan gambar atau file"
-            className="rounded-xl bg-neutral-800 px-3 py-2 text-lg leading-none hover:bg-neutral-700 disabled:opacity-50"
-          >
-            +
-          </button>
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              setIdxSaran(0);
-              setPilihModel(null);
-              setPilihSesi(null);
-            }}
-            onKeyDown={tekan}
-            onPaste={(e) => {
-              const f = Array.from(e.clipboardData.files);
-              if (f.length > 0) {
-                e.preventDefault();
-                tambahBerkas(f);
-              }
-            }}
-            rows={1}
-            placeholder="Tanyakan sesuatu... (Enter kirim, Shift+Enter baris baru)"
-            className="tanpa-scrollbar flex-1 resize-none overflow-y-auto rounded-xl bg-neutral-800 px-4 py-2 outline-none placeholder:text-neutral-500"
-          />
-          {sibuk ? (
-            <button
-              onClick={berhenti}
-              className="rounded-xl bg-neutral-700 px-4 py-2 hover:bg-neutral-600"
-            >
-              Berhenti
-            </button>
-          ) : (
-            <button
-              onClick={kirim}
-              disabled={!terhubung}
-              className="rounded-xl bg-orange-600 px-4 py-2 hover:bg-orange-500 disabled:opacity-50"
-            >
-              Kirim
-            </button>
-          )}
+          <div className="relative flex-1 rounded-xl bg-neutral-800">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setIdxSaran(0);
+                setPilihModel(null);
+                setPilihSesi(null);
+              }}
+              onKeyDown={tekan}
+              onPaste={(e) => {
+                const f = Array.from(e.clipboardData.files);
+                if (f.length > 0) {
+                  e.preventDefault();
+                  tambahBerkas(f);
+                }
+              }}
+              rows={1}
+              placeholder="Tanyakan sesuatu... (Enter kirim, Shift+Enter baris baru)"
+              className="tanpa-scrollbar w-full resize-none overflow-y-auto rounded-xl bg-neutral-800 px-4 py-2 pr-20 outline-none placeholder:text-neutral-500"
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={sibuk}
+                title="Lampirkan gambar atau file"
+                className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200 disabled:opacity-50"
+              >
+                +
+              </button>
+              {sibuk ? (
+                <button
+                  onClick={berhenti}
+                  className="rounded-lg bg-neutral-700 p-1.5 text-neutral-200 hover:bg-neutral-600"
+                  title="Stop"
+                >
+                  ⏹
+                </button>
+              ) : (
+                <button
+                  onClick={kirim}
+                  disabled={!terhubung || (!input.trim() && lampiran.length === 0)}
+                  className="rounded-lg bg-neutral-700 p-1.5 text-neutral-200 hover:bg-neutral-600 disabled:opacity-50"
+                  title="Kirim (Enter)"
+                >
+                  ↑
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </footer>
     </div>
