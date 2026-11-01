@@ -848,21 +848,21 @@ export default function App() {
               }}
               rows={1}
               placeholder="Tanyakan sesuatu... (Enter kirim, Shift+Enter baris baru)"
-              className="tanpa-scrollbar w-full resize-none overflow-y-auto rounded-xl bg-neutral-800 px-4 py-2 pr-20 outline-none placeholder:text-neutral-500"
+              className="tanpa-scrollbar w-full resize-none overflow-y-auto rounded-xl bg-neutral-800 px-4 py-3 pr-24 outline-none placeholder:text-neutral-500"
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={sibuk}
                 title="Lampirkan gambar atau file"
-                className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200 disabled:opacity-50"
+                className="rounded-lg p-2 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200 disabled:opacity-50"
               >
                 +
               </button>
               {sibuk ? (
                 <button
                   onClick={berhenti}
-                  className="rounded-lg bg-neutral-700 p-1.5 text-neutral-200 hover:bg-neutral-600"
+                  className="rounded-lg bg-neutral-700 p-2 text-neutral-200 hover:bg-neutral-600"
                   title="Stop"
                 >
                   ⏹
@@ -871,7 +871,7 @@ export default function App() {
                 <button
                   onClick={kirim}
                   disabled={!terhubung || (!input.trim() && lampiran.length === 0)}
-                  className="rounded-lg bg-neutral-700 p-1.5 text-neutral-200 hover:bg-neutral-600 disabled:opacity-50"
+                  className="rounded-lg bg-neutral-700 p-2 text-neutral-200 hover:bg-neutral-600 disabled:opacity-50"
                   title="Kirim (Enter)"
                 >
                   ↑
