@@ -553,17 +553,22 @@ export default function App() {
           {projectPath}
         </span>
 
-        <select
-          value={model}
-          onChange={(e) => gantiModel(e.target.value)}
-          className="rounded-full bg-neutral-800 px-2.5 py-0.5 font-mono text-xs text-neutral-300 outline-none"
-        >
-          {(daftarModel.includes(model) ? daftarModel : [model, ...daftarModel]).map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            value={model}
+            onChange={(e) => gantiModel(e.target.value)}
+            className="appearance-none rounded-lg bg-neutral-800 pl-3 pr-8 py-1.5 font-mono text-xs text-neutral-300 outline-none hover:bg-neutral-700 border border-neutral-700 hover:border-neutral-600 cursor-pointer transition-colors"
+          >
+            {(daftarModel.includes(model) ? daftarModel : [model, ...daftarModel]).map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">
+            ▼
+          </span>
+        </div>
 
         <span
           className={"h-2 w-2 rounded-full " + (terhubung ? "bg-green-500" : "bg-red-500")}
