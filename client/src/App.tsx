@@ -69,6 +69,37 @@ const waktuSingkat = (iso: string) =>
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const namaFile = (p: string) => p.split(/[\\/]/).pop() || p;
 
+// Component untuk render thinking blocks
+function RenderWithThinking({ teks }: { teks: string }) {
+  const parts = teks.split(/(<thinking>[\s\S]*?<\/thinking>)/);
+  return (
+    <div className="space-y-2">
+      {parts.map((part, i) => {
+        if (part.startsWith("<thinking>")) {
+          const content = part
+            .replace(/<thinking>/g, "")
+            .replace(/<\/thinking>/g, "")
+            .trim();
+          return (
+            <div
+              key={i}
+              className="rounded-lg bg-neutral-800 px-3 py-2 text-xs text-neutral-400"
+            >
+              <div className="mb-1 font-semibold text-neutral-500">💭 Thinking</div>
+              <div className="whitespace-pre-wrap">{content}</div>
+            </div>
+          );
+        }
+        return (
+          <div key={i}>
+            <ReactMarkdown components={markdownKomponen}>{part}</ReactMarkdown>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ringkasAlat(nama: string, input: Masukan) {
   const f = str(input.file_path);
   switch (nama) {
@@ -583,11 +614,11 @@ export default function App() {
             if (m.k === "saya")
               return (
                 <div key={i} className="flex justify-end">
-                  <div className="max-w-[85%] space-y-2 rounded-2xl bg-orange-600 px-4 py-2">
+                  <div className="max-w-[85%] space-y-2 rounded-2xl bg-neutral-700 px-4 py-2">
                     {m.lampiran && m.lampiran.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {m.lampiran.map((n, j) => (
-                          <span key={j} className="rounded-md bg-orange-800 px-2 py-0.5 text-xs">
+                          <span key={j} className="rounded-md bg-neutral-600 px-2 py-0.5 text-xs">
                             📎 {n}
                           </span>
                         ))}
@@ -600,7 +631,7 @@ export default function App() {
             if (m.k === "ai")
               return (
                 <div key={i} className="min-w-0 text-neutral-200">
-                  <ReactMarkdown components={markdownKomponen}>{m.teks}</ReactMarkdown>
+                  <RenderWithThinking teks={m.teks} />
                 </div>
               );
             if (m.k === "info")
