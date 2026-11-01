@@ -159,6 +159,7 @@ export default function App() {
   const [aplikasiSendiri, setAplikasiSendiri] = useState(false);
   const [terhubung, setTerhubung] = useState(false);
   const [lampiran, setLampiran] = useState<Lampiran[]>([]);
+  const [dragOver, setDragOver] = useState(false);
   const ws = useRef<WebSocket | null>(null);
   const bawah = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -535,7 +536,27 @@ export default function App() {
         </div>
       )}
 
-      <main className="tanpa-scrollbar flex-1 overflow-y-auto px-4 py-6">
+      <main
+        className={
+          "tanpa-scrollbar flex-1 overflow-y-auto px-4 py-6 transition-colors " +
+          (dragOver ? "bg-neutral-800" : "")
+        }
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          if (e.currentTarget === e.target) setDragOver(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setDragOver(false);
+          const files = Array.from(e.dataTransfer.files);
+          if (files.length > 0) tambahBerkas(files);
+        }}
+      >
         <div className="mx-auto w-full max-w-3xl space-y-4">
           {items.length === 0 && (
             <div className="pt-16 text-center text-neutral-500">
