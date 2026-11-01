@@ -860,14 +860,14 @@ export default function App() {
                 onClick={() => fileRef.current?.click()}
                 disabled={sibuk}
                 title="Lampirkan gambar atau file"
-                className="rounded-lg p-2 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200 disabled:opacity-50"
+                className="rounded-lg p-2.5 text-lg text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200 disabled:opacity-50"
               >
                 +
               </button>
               {sibuk ? (
                 <button
                   onClick={berhenti}
-                  className="rounded-lg bg-neutral-700 p-2 text-neutral-200 hover:bg-neutral-600"
+                  className="bg-neutral-700 p-2 text-neutral-200 hover:bg-neutral-600"
                   title="Stop"
                 >
                   ⏹
@@ -876,7 +876,7 @@ export default function App() {
                 <button
                   onClick={kirim}
                   disabled={!terhubung || (!input.trim() && lampiran.length === 0)}
-                  className="rounded-lg bg-neutral-700 p-2 text-neutral-200 hover:bg-neutral-600 disabled:opacity-50"
+                  className="bg-neutral-700 p-2 text-neutral-200 hover:bg-neutral-600 disabled:opacity-50"
                   title="Kirim (Enter)"
                 >
                   ↑
