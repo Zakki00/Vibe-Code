@@ -60,7 +60,6 @@ const KAMUS_KOREKSI: Record<string, string> = {
   // Indonesian
   bgaimana: "bagaimana",
   bgmn: "bagaimana",
-  apa: "apa",
   knp: "kenapa",
   krn: "karena",
   dri: "dari",
@@ -68,14 +67,12 @@ const KAMUS_KOREKSI: Record<string, string> = {
   dn: "dan",
   jdi: "jadi",
   tdk: "tidak",
-  gak: "gak", // keep as is, valid
   sdh: "sudah",
   blm: "belum",
   hr: "hari",
   tgl: "tanggal",
   pd: "pada",
   dr: "dari",
-  ke: "ke",
   utk: "untuk",
   kmrin: "kemarin",
   bsk: "besok",
@@ -87,6 +84,50 @@ const KAMUS_KOREKSI: Record<string, string> = {
   seperate: "separate",
   definately: "definitely",
 };
+
+// Levenshtein distance untuk fuzzy matching
+function levenshteinDistance(a: string, b: string): number {
+  const matrix: number[][] = [];
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1, // substitution
+          matrix[i][j - 1] + 1,     // insertion
+          matrix[i - 1][j] + 1,     // deletion
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+// Cari suggestions berdasarkan kata terakhir
+function cariSuggestions(kata: string, maxDistance = 2): string[] {
+  const lower = kata.toLowerCase();
+  const suggestions = Object.entries(KAMUS_KOREKSI)
+    .filter(([k]) => {
+      const dist = levenshteinDistance(lower, k.toLowerCase());
+      return dist <= maxDistance && dist > 0; // dist > 0 untuk skip exact match
+    })
+    .sort(([a], [b]) => {
+      const distA = levenshteinDistance(lower, a.toLowerCase());
+      const distB = levenshteinDistance(lower, b.toLowerCase());
+      return distA - distB;
+    })
+    .slice(0, 5)
+    .map(([, v]) => v);
+
+  return suggestions;
+}
 
 type Simpanan = Array<Record<string, unknown>>;
 const pulihkan = (daftar: Simpanan): Item[] =>
@@ -193,6 +234,8 @@ export default function App() {
   const [terhubung, setTerhubung] = useState(false);
   const [lampiran, setLampiran] = useState<Lampiran[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [idxSuggestion, setIdxSuggestion] = useState(0);
   const ws = useRef<WebSocket | null>(null);
   const bawah = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -422,21 +465,6 @@ export default function App() {
     setLampiran((p) => [...p, ...baru]);
   }
 
-  function autoCorrect(teks: string): string {
-    const kata = teks.split(/\s+/);
-    const terakhir = kata[kata.length - 1]?.toLowerCase();
-
-    if (terakhir && KAMUS_KOREKSI[terakhir]) {
-      kata[kata.length - 1] = KAMUS_KOREKSI[terakhir];
-      const hasil = kata.join(" ");
-      if (hasil !== teks) {
-        info(`Auto-correct: "${terakhir}" → "${KAMUS_KOREKSI[terakhir]}"`);
-      }
-      return hasil;
-    }
-    return teks;
-  }
-
   function berhenti() {
     kirimWs({ type: "stop" });
   }
@@ -481,6 +509,35 @@ export default function App() {
   }
 
   function tekan(e: KeyboardEvent<HTMLTextAreaElement>) {
+    // Handle suggestion dropdown navigation
+    if (suggestions.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setIdxSuggestion((i) => (i + 1) % suggestions.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setIdxSuggestion((i) => (i - 1 + suggestions.length) % suggestions.length);
+        return;
+      }
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        // Apply suggestion
+        const kata = input.trim().split(/\s+/);
+        kata[kata.length - 1] = suggestions[idxSuggestion];
+        const hasil = kata.join(" ") + " ";
+        setInput(hasil);
+        setSuggestions([]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setSuggestions([]);
+        return;
+      }
+    }
+
     if (
       pilihSesi !== null &&
       navigasi(
@@ -811,6 +868,35 @@ export default function App() {
             ))}
           </div>
         )}
+        {suggestions.length > 0 && (
+          <div className="absolute inset-x-3 bottom-full mx-auto mb-2 max-w-3xl overflow-hidden rounded-xl border border-neutral-700 bg-neutral-800 shadow-lg">
+            <div className="border-b border-neutral-700 px-4 py-1.5 text-xs text-neutral-400">
+              Auto-correct suggestions · ↑↓ untuk memilih · Enter untuk apply · Esc untuk batal
+            </div>
+            {suggestions.map((s, i) => (
+              <button
+                key={i}
+                onMouseEnter={() => setIdxSuggestion(i)}
+                onClick={() => {
+                  const kata = input.trim().split(/\s+/);
+                  kata[kata.length - 1] = s;
+                  const hasil = kata.join(" ") + " ";
+                  setInput(hasil);
+                  setSuggestions([]);
+                  inputRef.current?.focus();
+                }}
+                className={
+                  "flex w-full items-center gap-3 px-4 py-2 text-left " +
+                  (i === idxSuggestion ? "bg-neutral-700" : "")
+                }
+              >
+                <span className="font-mono text-orange-400">{input.trim().split(/\s+/).pop()}</span>
+                <span className="text-neutral-400">→</span>
+                <span className="text-neutral-200">{s}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="mx-auto flex max-w-3xl items-end gap-2">
           <input
             ref={fileRef}
@@ -835,13 +921,18 @@ export default function App() {
             value={input}
             onChange={(e) => {
               const novoTexto = e.target.value;
-              const jaTerminavaComEspaco = novoTexto !== input && novoTexto.endsWith(" ");
+              setInput(novoTexto);
 
-              if (jaTerminavaComEspaco) {
-                const corrigido = autoCorrect(novoTexto);
-                setInput(corrigido);
+              // Detect suggestions untuk kata terakhir
+              const kata = novoTexto.trim().split(/\s+/);
+              const terakhir = kata[kata.length - 1];
+
+              if (terakhir && terakhir.length > 2) {
+                const sug = cariSuggestions(terakhir);
+                setSuggestions(sug);
+                setIdxSuggestion(0);
               } else {
-                setInput(novoTexto);
+                setSuggestions([]);
               }
 
               setIdxSaran(0);
