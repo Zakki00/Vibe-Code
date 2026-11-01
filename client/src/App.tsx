@@ -160,7 +160,7 @@ export default function App() {
   const [terhubung, setTerhubung] = useState(false);
   const [lampiran, setLampiran] = useState<Lampiran[]>([]);
   const [dragOver, setDragOver] = useState(false);
-  const [izinkanSelalu, setIzinkanSelalu] = useState<Set<string>>(new Set());
+  const izinkanSelaluRef = useRef<Set<string>>(new Set());
   const ws = useRef<WebSocket | null>(null);
   const bawah = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -238,8 +238,8 @@ export default function App() {
           );
         }
         if (m.type === "izin") {
-          // Cek jika alat sudah di-"Izinkan Selalu"
-          if (izinkanSelalu.has(m.alat)) {
+          // Cek jika alat sudah di-"Izinkan Selalu" menggunakan ref untuk latest state
+          if (izinkanSelaluRef.current.has(m.alat)) {
             kirimWs({ type: "izin", id: m.id, izinkan: true });
           } else {
             setIzin({ id: m.id, alat: m.alat, input: m.input });
@@ -337,7 +337,7 @@ export default function App() {
       case "/new":
       case "/clear":
         setItems([]);
-        setIzinkanSelalu(new Set()); // Reset permission cache
+        izinkanSelaluRef.current.clear(); // Reset permission cache ref
         kirimWs({ type: "reset" });
         break;
       case "/resume":
@@ -408,7 +408,7 @@ export default function App() {
 
     // Jika "Izinkan Selalu", tambahkan ke cache
     if (izinkan && selalu) {
-      setIzinkanSelalu((prev) => new Set([...prev, izin.alat]));
+      izinkanSelaluRef.current.add(izin.alat);
       info(`Izin untuk "${izin.alat}" akan diberikan otomatis di session ini.`);
     }
 
