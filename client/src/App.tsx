@@ -8,6 +8,7 @@ type Item =
   | { k: "ai"; teks: string }
   | { k: "info"; teks: string }
   | { k: "sesi"; daftar: Sesi[]; aktif: string | null }
+  | { k: "model"; daftar: string[]; aktif: string }
   | {
       k: "alat";
       id: string;
@@ -129,7 +130,7 @@ export default function App() {
   const [izin, setIzin] = useState<Izin | null>(null);
   const [status, setStatus] = useState("");
   const [detik, setDetik] = useState(0);
-  const [model, setModel] = useState("Vibe_Code");
+  const [model, setModel] = useState(() => localStorage.getItem("vibe-model") || "Vibe_Code");
   const [daftarModel, setDaftarModel] = useState<string[]>([]);
   const [projectPath, setProjectPath] = useState("");
   const [aplikasiSendiri, setAplikasiSendiri] = useState(false);
@@ -146,6 +147,15 @@ export default function App() {
   const kirimWs = useCallback((obj: unknown) => {
     if (ws.current?.readyState === WebSocket.OPEN) ws.current.send(JSON.stringify(obj));
   }, []);
+
+  const gantiModel = useCallback(
+    (nama: string) => {
+      setModel(nama);
+      localStorage.setItem("vibe-model", nama);
+      info(`Model diganti ke: ${nama}`);
+    },
+    [info]
+  )
 
   useEffect(() => {
     let tutup = false;
@@ -296,12 +306,8 @@ export default function App() {
         kirimWs({ type: "command", command: "session_list" });
         break;
       case "/model":
-        if (arg) {
-          setModel(arg);
-          info(`Model diganti ke: ${arg}`);
-        } else {
-          info(`Model saat ini: ${model}\nTersedia: ${daftarModel.join(", ")}`);
-        }
+        if (arg) gantiModel(arg);
+        else setItems((p) => [...p, { k: "model", daftar: daftarModel, aktif: model }]);
         break;
       case "/project":
         kirimWs(
@@ -374,9 +380,19 @@ export default function App() {
         >
           {projectPath}
         </span>
-        <span className="rounded-full bg-neutral-800 px-2.5 py-0.5 font-mono text-xs text-neutral-300">
-          {model}
-        </span>
+
+        <select
+          value={model}
+          onChange={(e) => gantiModel(e.target.value)}
+          className="rounded-full bg-neutral-800 px-2.5 py-0.5 font-mono text-xs text-neutral-300 outline-none"
+        >
+          {(daftarModel.includes(model) ? daftarModel : [model, ...daftarModel]).map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+
         <span
           className={"h-2 w-2 rounded-full " + (terhubung ? "bg-green-500" : "bg-red-500")}
           title={terhubung ? "Terhubung" : "Terputus"}
@@ -444,6 +460,29 @@ export default function App() {
                           {s.id === m.aktif ? "sesi ini  ·  " : ""}
                           {waktuSingkat(s.waktu)}
                         </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            if (m.k === "model")
+              return (
+                <div key={i} className="space-y-1">
+                  <div className="text-sm text-neutral-400">Pilih model:</div>
+                  <div className="overflow-hidden rounded-xl border border-neutral-700">
+                    {m.daftar.map((nama) => (
+                      <button
+                        key={nama}
+                        onClick={() => gantiModel(nama)}
+                        className={
+                          "flex w-full items-center justify-between gap-3 px-4 py-2 text-left font-mono text-sm hover:bg-neutral-800 " +
+                          (nama === model ? "bg-neutral-800" : "")
+                        }
+                      >
+                        <span>{nama}</span>
+                        {nama === model && (
+                          <span className="text-xs text-orange-400">dipakai</span>
+                        )}
                       </button>
                     ))}
                   </div>
