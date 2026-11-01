@@ -160,6 +160,7 @@ export default function App() {
   const [terhubung, setTerhubung] = useState(false);
   const [lampiran, setLampiran] = useState<Lampiran[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const [izinkanSelalu, setIzinkanSelalu] = useState<Set<string>>(new Set());
   const ws = useRef<WebSocket | null>(null);
   const bawah = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -236,7 +237,14 @@ export default function App() {
             ),
           );
         }
-        if (m.type === "izin") setIzin({ id: m.id, alat: m.alat, input: m.input });
+        if (m.type === "izin") {
+          // Cek jika alat sudah di-"Izinkan Selalu"
+          if (izinkanSelalu.has(m.alat)) {
+            kirimWs({ type: "izin", id: m.id, izinkan: true });
+          } else {
+            setIzin({ id: m.id, alat: m.alat, input: m.input });
+          }
+        }
         if (m.type === "done") {
           setSibuk(false);
           setStatus("");
@@ -329,6 +337,7 @@ export default function App() {
       case "/new":
       case "/clear":
         setItems([]);
+        setIzinkanSelalu(new Set()); // Reset permission cache
         kirimWs({ type: "reset" });
         break;
       case "/resume":
@@ -393,9 +402,16 @@ export default function App() {
     kirimWs({ type: "stop" });
   }
 
-  function jawabIzin(izinkan: boolean) {
+  function jawabIzin(izinkan: boolean, selalu: boolean = false) {
     if (!izin) return;
     kirimWs({ type: "izin", id: izin.id, izinkan });
+
+    // Jika "Izinkan Selalu", tambahkan ke cache
+    if (izinkan && selalu) {
+      setIzinkanSelalu((prev) => new Set([...prev, izin.alat]));
+      info(`Izin untuk "${izin.alat}" akan diberikan otomatis di session ini.`);
+    }
+
     setIzin(null);
   }
 
@@ -635,12 +651,19 @@ export default function App() {
                 </div>
               )}
               <IsiAlat nama={izin.alat} input={izin.input} />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => jawabIzin(true)}
                   className="rounded-xl bg-green-600 px-4 py-2 hover:bg-green-500"
                 >
                   Izinkan
+                </button>
+                <button
+                  onClick={() => jawabIzin(true, true)}
+                  className="rounded-xl bg-green-700 px-4 py-2 hover:bg-green-600"
+                  title="Izinkan tindakan ini dan semua tindakan serupa di session ini"
+                >
+                  Izinkan Selalu
                 </button>
                 <button
                   onClick={() => jawabIzin(false)}
