@@ -887,7 +887,7 @@ export default function App() {
             ))}
           </div>
         )}
-        <div className="mx-auto flex max-w-3xl items-end gap-2">
+        <div className="mx-auto flex max-w-3xl gap-2">
           <input
             ref={fileRef}
             type="file"
@@ -898,7 +898,7 @@ export default function App() {
               e.target.value = "";
             }}
           />
-          <div className="relative flex-1 rounded-xl bg-neutral-800">
+          <div className="flex-1 rounded-xl bg-neutral-800">
             <textarea
               ref={inputRef}
               value={input}
@@ -918,36 +918,36 @@ export default function App() {
               }}
               rows={1}
               placeholder="Tanyakan sesuatu... (Enter kirim, Shift+Enter baris baru)"
-              className="tanpa-scrollbar w-full resize-none overflow-y-auto rounded-xl bg-neutral-800 px-4 py-3 pr-24 outline-none placeholder:text-neutral-500"
+              className="tanpa-scrollbar w-full resize-none overflow-y-auto rounded-xl bg-neutral-800 px-4 py-3 outline-none placeholder:text-neutral-500"
             />
-            <div className="absolute right-3 bottom-3 flex items-center gap-2">
+          </div>
+          <div className="flex items-end gap-2">
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={sibuk}
+              title="Lampirkan gambar atau file"
+              className="rounded-lg p-2.5 text-lg text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200 disabled:opacity-50"
+            >
+              +
+            </button>
+            {sibuk ? (
               <button
-                onClick={() => fileRef.current?.click()}
-                disabled={sibuk}
-                title="Lampirkan gambar atau file"
-                className="rounded-lg p-2.5 text-lg text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200 disabled:opacity-50"
+                onClick={berhenti}
+                className="p-2 text-neutral-400 hover:text-neutral-200"
+                title="Stop"
               >
-                +
+                ⏹
               </button>
-              {sibuk ? (
-                <button
-                  onClick={berhenti}
-                  className="p-2 text-neutral-400 hover:text-neutral-200"
-                  title="Stop"
-                >
-                  ⏹
-                </button>
-              ) : (
-                <button
-                  onClick={kirim}
-                  disabled={!terhubung || (!input.trim() && lampiran.length === 0)}
-                  className="p-2 text-neutral-400 hover:text-neutral-200 disabled:opacity-50"
-                  title="Kirim (Enter)"
-                >
-                  ↑
-                </button>
-              )}
-            </div>
+            ) : (
+              <button
+                onClick={kirim}
+                disabled={!terhubung || (!input.trim() && lampiran.length === 0)}
+                className="p-2 text-neutral-400 hover:text-neutral-200 disabled:opacity-50"
+                title="Kirim (Enter)"
+              >
+                ↑
+              </button>
+            )}
           </div>
         </div>
       </footer>
