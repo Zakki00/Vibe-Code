@@ -97,6 +97,52 @@ function ringankan(input) {
   return hasil;
 }
 
+// ---------- Lampiran (gambar & file) ----------
+const MAKS_LAMPIRAN = 5;
+const MAKS_BYTE = 10 * 1024 * 1024; // 10 MB per file
+const TIPE_GAMBAR = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
+
+async function simpanLampiran(daftar) {
+  const folder = path.join(folderVibe(), "uploads");
+  await fs.mkdir(folder, { recursive: true });
+  const gambar = [];
+  const berkas = [];
+  for (const l of (Array.isArray(daftar) ? daftar : []).slice(0, MAKS_LAMPIRAN)) {
+    if (typeof l?.nama !== "string" || typeof l?.data !== "string") continue;
+    const buf = Buffer.from(l.data, "base64");
+    if (buf.length === 0 || buf.length > MAKS_BYTE) continue;
+    const aman = path.basename(l.nama).replace(/[^\w.\- ]/g, "_").slice(0, 80) || "berkas";
+    const jalur = path.join(folder, `${Date.now()}-${aman}`);
+    await fs.writeFile(jalur, buf);
+    if (TIPE_GAMBAR.has(l.tipe)) gambar.push({ nama: aman, tipe: l.tipe, data: l.data });
+    else berkas.push({ nama: aman, path: jalur });
+  }
+  return { gambar, berkas };
+}
+
+async function* aliranPrompt(teks, gambar, berkas) {
+  let isi = teks;
+  if (berkas.length)
+    isi +=
+      "\n\nBerkas terlampir (baca dengan alat Read):\n" +
+      berkas.map((b) => `- ${b.path}`).join("\n");
+  yield {
+    type: "user",
+    message: {
+      role: "user",
+      content: [
+        ...gambar.map((g) => ({
+          type: "image",
+          source: { type: "base64", media_type: g.tipe, data: g.data },
+        })),
+        { type: "text", text: isi },
+      ],
+    },
+    parent_tool_use_id: null,
+    session_id: "",
+  };
+}
+
 async function infoClaudeMd() {
   const p = path.join(PROJECT_DIR, "CLAUDE.md");
   try {
@@ -271,17 +317,25 @@ wss.on("connection", (ws) => {
     }
 
     // ---------- Pertanyaan baru ----------
-    const { prompt, model } = data;
-    if (typeof prompt !== "string" || !prompt.trim() || sedangJalan) return;
+    const { prompt = "", model, lampiran } = data;
+    const adaLampiran = Array.isArray(lampiran) && lampiran.length > 0;
+    if (typeof prompt !== "string" || (!prompt.trim() && !adaLampiran) || sedangJalan) return;
 
     const ac = new AbortController();
     sedangJalan = ac;
-    if (!sessionId) judulSesi = prompt.trim().replace(/\s+/g, " ").slice(0, 60);
-    riwayat.push({ k: "saya", teks: prompt.trim() });
+    const teks = prompt.trim() || "Tolong lihat lampiran ini.";
+    if (!sessionId) judulSesi = teks.replace(/\s+/g, " ").slice(0, 60);
 
     try {
+      const { gambar, berkas } = await simpanLampiran(lampiran);
+      riwayat.push({
+        k: "saya",
+        teks: prompt.trim(),
+        lampiran: [...gambar, ...berkas].map((l) => l.nama),
+      });
+
       for await (const msg of query({
-        prompt,
+        prompt: aliranPrompt(teks, gambar, berkas),
         options: {
           model: model || MODEL_DEFAULT,
           cwd: PROJECT_DIR,

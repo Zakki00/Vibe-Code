@@ -3,8 +3,9 @@ import type { KeyboardEvent } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 
 type Masukan = Record<string, unknown>;
+type Lampiran = { nama: string; tipe: string; data: string; pratinjau?: string };
 type Item =
-  | { k: "saya"; teks: string }
+  | { k: "saya"; teks: string; lampiran?: string[] }
   | { k: "ai"; teks: string }
   | { k: "info"; teks: string }
   | {
@@ -21,6 +22,26 @@ type Sesi = { id: string; judul: string; waktu: string };
 type Izin = { id: string; alat: string; input: Masukan };
 
 const KATA = ["Memahami pertanyaan", "Memproses", "Menyusun jawaban"];
+
+const MAKS_BYTE = 10 * 1024 * 1024;
+const MAKS_LAMPIRAN = 5;
+const TIPE_GAMBAR = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+
+const bacaBerkas = (f: File) =>
+  new Promise<Lampiran>((ok, gagal) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const url = String(r.result);
+      ok({
+        nama: f.name || "gambar.png",
+        tipe: f.type,
+        data: url.split(",")[1] ?? "",
+        pratinjau: TIPE_GAMBAR.includes(f.type) ? url : undefined,
+      });
+    };
+    r.onerror = () => gagal(r.error);
+    r.readAsDataURL(f);
+  });
 
 const PERINTAH = [
   { nama: "/help", ket: "Tampilkan daftar perintah" },
@@ -137,9 +158,11 @@ export default function App() {
   const [projectPath, setProjectPath] = useState("");
   const [aplikasiSendiri, setAplikasiSendiri] = useState(false);
   const [terhubung, setTerhubung] = useState(false);
+  const [lampiran, setLampiran] = useState<Lampiran[]>([]);
   const ws = useRef<WebSocket | null>(null);
   const bawah = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const info = useCallback(
     (teks: string) => setItems((p) => [...p, { k: "info", teks }]),
@@ -336,16 +359,33 @@ export default function App() {
 
   function kirim() {
     const teks = input.trim();
-    if (!teks || sibuk) return;
+    if ((!teks && lampiran.length === 0) || sibuk) return;
     setInput("");
-    if (teks.startsWith("/")) {
+    if (teks.startsWith("/") && lampiran.length === 0) {
       perintah(teks);
       return;
     }
-    setItems((p) => [...p, { k: "saya", teks }]);
-    kirimWs({ prompt: teks, model });
+    setItems((p) => [...p, { k: "saya", teks, lampiran: lampiran.map((l) => l.nama) }]);
+    kirimWs({
+      prompt: teks,
+      model,
+      lampiran: lampiran.map(({ nama, tipe, data }) => ({ nama, tipe, data })),
+    });
+    setLampiran([]);
     setStatus("");
     setSibuk(true);
+  }
+
+  async function tambahBerkas(files: File[]) {
+    const lolos: File[] = [];
+    for (const f of files) {
+      if (f.size > MAKS_BYTE) info(`"${f.name}" dilewati: ukuran lebih dari 10 MB.`);
+      else lolos.push(f);
+    }
+    const sisa = MAKS_LAMPIRAN - lampiran.length;
+    if (lolos.length > sisa) info(`Maksimal ${MAKS_LAMPIRAN} lampiran per pesan.`);
+    const baru = await Promise.all(lolos.slice(0, Math.max(0, sisa)).map(bacaBerkas));
+    setLampiran((p) => [...p, ...baru]);
   }
 
   function berhenti() {
@@ -506,8 +546,17 @@ export default function App() {
             if (m.k === "saya")
               return (
                 <div key={i} className="flex justify-end">
-                  <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl bg-orange-600 px-4 py-2">
-                    {m.teks}
+                  <div className="max-w-[85%] space-y-2 rounded-2xl bg-orange-600 px-4 py-2">
+                    {m.lampiran && m.lampiran.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {m.lampiran.map((n, j) => (
+                          <span key={j} className="rounded-md bg-orange-800 px-2 py-0.5 text-xs">
+                            📎 {n}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {m.teks && <div className="whitespace-pre-wrap">{m.teks}</div>}
                   </div>
                 </div>
               );
@@ -669,7 +718,49 @@ export default function App() {
             ))}
           </div>
         )}
+        {lampiran.length > 0 && (
+          <div className="mx-auto mb-2 flex max-w-3xl flex-wrap gap-2">
+            {lampiran.map((l, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 rounded-lg bg-neutral-800 py-1 pl-2 pr-1 text-xs"
+              >
+                {l.pratinjau ? (
+                  <img src={l.pratinjau} alt="" className="h-8 w-8 rounded object-cover" />
+                ) : (
+                  <span>📄</span>
+                )}
+                <span className="max-w-40 truncate">{l.nama}</span>
+                <button
+                  onClick={() => setLampiran((p) => p.filter((_, j) => j !== i))}
+                  className="rounded px-1.5 text-neutral-400 hover:bg-neutral-700 hover:text-white"
+                  title="Hapus lampiran"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="mx-auto flex max-w-3xl items-end gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            hidden
+            onChange={(e) => {
+              tambahBerkas(Array.from(e.target.files ?? []));
+              e.target.value = "";
+            }}
+          />
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={sibuk}
+            title="Lampirkan gambar atau file"
+            className="rounded-xl bg-neutral-800 px-3 py-2 text-lg leading-none hover:bg-neutral-700 disabled:opacity-50"
+          >
+            +
+          </button>
           <textarea
             ref={inputRef}
             value={input}
@@ -680,6 +771,13 @@ export default function App() {
               setPilihSesi(null);
             }}
             onKeyDown={tekan}
+            onPaste={(e) => {
+              const f = Array.from(e.clipboardData.files);
+              if (f.length > 0) {
+                e.preventDefault();
+                tambahBerkas(f);
+              }
+            }}
             rows={1}
             placeholder="Tanyakan sesuatu... (Enter kirim, Shift+Enter baris baru)"
             className="tanpa-scrollbar flex-1 resize-none overflow-y-auto rounded-xl bg-neutral-800 px-4 py-2 outline-none placeholder:text-neutral-500"
