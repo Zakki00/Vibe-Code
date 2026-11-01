@@ -26,6 +26,7 @@ const KATA = ["Memahami pertanyaan", "Memproses", "Menyusun jawaban"];
 const MAKS_BYTE = 10 * 1024 * 1024;
 const MAKS_LAMPIRAN = 5;
 const TIPE_GAMBAR = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+const BATAS_PANJANG_PESAN = 200; // batas untuk "Tampilkan Lebih Banyak"
 
 const bacaBerkas = (f: File) =>
   new Promise<Lampiran>((ok, gagal) => {
@@ -173,6 +174,75 @@ function IsiAlat({ nama, input }: { nama: string; input: Masukan }) {
   );
 }
 
+function PesanUser({
+  teks,
+  lampiran,
+  expanded,
+  onToggleExpand,
+}: {
+  teks: string;
+  lampiran?: string[];
+  expanded: boolean;
+  onToggleExpand: () => void;
+}) {
+  const panjang = teks.length;
+  const cukupPanjang = panjang > BATAS_PANJANG_PESAN;
+  const tampilkan = expanded ? teks : teks.slice(0, BATAS_PANJANG_PESAN) + "...";
+
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[85%] space-y-2 rounded-2xl bg-neutral-700 px-4 py-2">
+        {lampiran && lampiran.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {lampiran.map((n, j) => (
+              <span key={j} className="rounded-md bg-neutral-600 px-2 py-0.5 text-xs">
+                📎 {n}
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="whitespace-pre-wrap">{tampilkan}</div>
+        {cukupPanjang && (
+          <button
+            onClick={onToggleExpand}
+            className="text-xs text-neutral-300 hover:text-neutral-100 hover:underline"
+          >
+            {expanded ? "Tampilkan Lebih Sedikit" : `Tampilkan Lebih Banyak (${panjang} karakter)`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PesanAI({
+  teks,
+  expanded,
+  onToggleExpand,
+}: {
+  teks: string;
+  expanded: boolean;
+  onToggleExpand: () => void;
+}) {
+  const panjang = teks.length;
+  const cukupPanjang = panjang > BATAS_PANJANG_PESAN;
+  const tampilkan = expanded ? teks : teks.slice(0, BATAS_PANJANG_PESAN) + "...";
+
+  return (
+    <div className="min-w-0 text-neutral-200 space-y-2">
+      <RenderWithThinking teks={tampilkan} />
+      {cukupPanjang && (
+        <button
+          onClick={onToggleExpand}
+          className="text-xs text-neutral-400 hover:text-neutral-300 hover:underline"
+        >
+          {expanded ? "Tampilkan Lebih Sedikit" : `Tampilkan Lebih Banyak (${panjang} karakter)`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const [items, setItems] = useState<Item[]>([]);
   const [input, setInput] = useState("");
@@ -185,6 +255,7 @@ export default function App() {
   const [pilihModel, setPilihModel] = useState<number | null>(null);
   const [idxSaran, setIdxSaran] = useState(0);
   const [daftarSesi, setDaftarSesi] = useState<Sesi[]>([]);
+  const [expandedMessages, setExpandedMessages] = useState<Set<number>>(new Set());
   const [pilihSesi, setPilihSesi] = useState<number | null>(null);
   const [projectPath, setProjectPath] = useState("");
   const [aplikasiSendiri, setAplikasiSendiri] = useState(false);
@@ -581,12 +652,6 @@ export default function App() {
           Terputus dari server, mencoba menyambung kembali...
         </div>
       )}
-      {aplikasiSendiri && (
-        <div className="bg-yellow-950 px-4 py-1.5 text-sm text-yellow-200">
-          Folder kerja adalah folder aplikasi ini sendiri. Jika asisten mengubah file di sini,
-          halaman bisa dimuat ulang dan percakapan terputus.
-        </div>
-      )}
 
       <main
         className={
@@ -618,20 +683,20 @@ export default function App() {
           {items.map((m, i) => {
             if (m.k === "saya")
               return (
-                <div key={i} className="flex justify-end">
-                  <div className="max-w-[85%] space-y-2 rounded-2xl bg-neutral-700 px-4 py-2">
-                    {m.lampiran && m.lampiran.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {m.lampiran.map((n, j) => (
-                          <span key={j} className="rounded-md bg-neutral-600 px-2 py-0.5 text-xs">
-                            📎 {n}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {m.teks && <div className="whitespace-pre-wrap">{m.teks}</div>}
-                  </div>
-                </div>
+                <PesanUser
+                  key={i}
+                  teks={m.teks}
+                  lampiran={m.lampiran}
+                  expanded={expandedMessages.has(i)}
+                  onToggleExpand={() => {
+                    setExpandedMessages((prev) => {
+                      const newSet = new Set(prev);
+                      if (newSet.has(i)) newSet.delete(i);
+                      else newSet.add(i);
+                      return newSet;
+                    });
+                  }}
+                />
               );
             if (m.k === "ai")
               return (
@@ -855,7 +920,7 @@ export default function App() {
               placeholder="Tanyakan sesuatu... (Enter kirim, Shift+Enter baris baru)"
               className="tanpa-scrollbar w-full resize-none overflow-y-auto rounded-xl bg-neutral-800 px-4 py-3 pr-24 outline-none placeholder:text-neutral-500"
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            <div className="absolute right-3 bottom-3 flex items-center gap-2">
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={sibuk}
@@ -867,7 +932,7 @@ export default function App() {
               {sibuk ? (
                 <button
                   onClick={berhenti}
-                  className="bg-neutral-700 p-2 text-neutral-200 hover:bg-neutral-600"
+                  className="p-2 text-neutral-400 hover:text-neutral-200"
                   title="Stop"
                 >
                   ⏹
@@ -876,7 +941,7 @@ export default function App() {
                 <button
                   onClick={kirim}
                   disabled={!terhubung || (!input.trim() && lampiran.length === 0)}
-                  className="bg-neutral-700 p-2 text-neutral-200 hover:bg-neutral-600 disabled:opacity-50"
+                  className="p-2 text-neutral-400 hover:text-neutral-200 disabled:opacity-50"
                   title="Kirim (Enter)"
                 >
                   ↑

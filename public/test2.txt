@@ -1,0 +1,7 @@
+Ini adalah file test ke-2 untuk meng-test fitur "Izinkan Selalu".
+File ini berbeda dari test.txt, tapi menggunakan alat Read yang sama.
+
+Expected behavior:
+- Karena sudah "Izinkan Selalu" untuk Read di session ini
+- Permission card TIDAK seharusnya muncul
+- Langsung execute Read tanpa konfirmasi

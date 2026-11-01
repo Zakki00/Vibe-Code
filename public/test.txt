@@ -1,0 +1,8 @@
+Ini adalah file test untuk meng-test fitur "Izinkan Selalu".
+File ini akan digunakan untuk mengecek apakah permission caching bekerja dengan baik.
+
+Testing points:
+1. Baca file ini (akan muncul permission card untuk Read)
+2. Klik "Izinkan Selalu"
+3. Baca file ini lagi
+4. Lihat apakah langsung execute tanpa permission card
