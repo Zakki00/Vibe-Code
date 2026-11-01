@@ -7,8 +7,6 @@ type Item =
   | { k: "saya"; teks: string }
   | { k: "ai"; teks: string }
   | { k: "info"; teks: string }
-  | { k: "sesi"; daftar: Sesi[]; aktif: string | null }
-  | { k: "model"; daftar: string[]; aktif: string }
   | {
       k: "alat";
       id: string;
@@ -132,6 +130,10 @@ export default function App() {
   const [detik, setDetik] = useState(0);
   const [model, setModel] = useState(() => localStorage.getItem("vibe-model") || "Vibe_Code");
   const [daftarModel, setDaftarModel] = useState<string[]>([]);
+  const [pilihModel, setPilihModel] = useState<number | null>(null);
+  const [idxSaran, setIdxSaran] = useState(0);
+  const [daftarSesi, setDaftarSesi] = useState<Sesi[]>([]);
+  const [pilihSesi, setPilihSesi] = useState<number | null>(null);
   const [projectPath, setProjectPath] = useState("");
   const [aplikasiSendiri, setAplikasiSendiri] = useState(false);
   const [terhubung, setTerhubung] = useState(false);
@@ -236,9 +238,12 @@ export default function App() {
               setAplikasiSendiri(!!d.aplikasiSendiri);
             } else info(d.sibuk ? "Tunggu asisten selesai dulu." : "Gagal: folder tidak ditemukan.");
           }
-          if (m.command === "session_list") {
+                    if (m.command === "session_list") {
             if (d.daftar.length === 0) info("Belum ada sesi tersimpan di folder ini.");
-            else setItems((p) => [...p, { k: "sesi", daftar: d.daftar, aktif: d.aktif }]);
+            else {
+              setDaftarSesi(d.daftar);
+              setPilihSesi(Math.max(0, d.daftar.findIndex((s: Sesi) => s.id === d.aktif)));
+            }
           }
           if (m.command === "session_resume" && !d.success)
             info(d.sibuk ? "Tunggu asisten selesai dulu." : "Sesi tidak ditemukan.");
@@ -307,7 +312,9 @@ export default function App() {
         break;
       case "/model":
         if (arg) gantiModel(arg);
-        else setItems((p) => [...p, { k: "model", daftar: daftarModel, aktif: model }]);
+        else if (daftarModel.length > 0)
+          setPilihModel(Math.max(0, daftarModel.indexOf(model)));
+        else info(`Model saat ini: ${model}`);
         break;
       case "/project":
         kirimWs(
@@ -351,22 +358,99 @@ export default function App() {
     setIzin(null);
   }
 
-  function tekan(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Tab" && saran.length > 0) {
+    // Penanganan umum untuk daftar yang bisa dipilih dengan panah.
+  function navigasi(
+    e: KeyboardEvent<HTMLTextAreaElement>,
+    n: number,
+    idx: number,
+    setIdx: (i: number) => void,
+    pilih: (i: number) => void,
+    tutup: () => void,
+  ): boolean {
+    if (n === 0) return false;
+    if (e.key === "ArrowDown") {
       e.preventDefault();
-      setInput(saran[0].nama + " ");
-      return;
+      setIdx((idx + 1) % n);
+      return true;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setIdx((idx - 1 + n) % n);
+      return true;
     }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (saran.length > 0 && !PERINTAH.some((p) => p.nama === input.trim())) {
-        setInput(saran[0].nama + " ");
+      pilih(idx);
+      return true;
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      tutup();
+      return true;
+    }
+    return false;
+  }
+
+  function tekan(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (
+      pilihSesi !== null &&
+      navigasi(
+        e,
+        daftarSesi.length,
+        pilihSesi,
+        setPilihSesi,
+        (i) => {
+          kirimWs({ type: "command", command: "session_resume", arg: daftarSesi[i].id });
+          setPilihSesi(null);
+        },
+        () => setPilihSesi(null),
+      )
+    )
+      return;
+
+    if (
+      pilihModel !== null &&
+      navigasi(
+        e,
+        daftarModel.length,
+        pilihModel,
+        setPilihModel,
+        (i) => {
+          gantiModel(daftarModel[i]);
+          setPilihModel(null);
+        },
+        () => setPilihModel(null),
+      )
+    )
+      return;
+
+    if (saran.length > 0) {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        setInput(saran[Math.min(idxSaran, saran.length - 1)].nama + " ");
         return;
       }
+      if (
+        navigasi(
+          e,
+          saran.length,
+          idxSaran,
+          setIdxSaran,
+          (i) => {
+            setInput("");
+            perintah(saran[i].nama);
+          },
+          () => setInput(""),
+        )
+      )
+        return;
+    }
+
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
       kirim();
     }
   }
-
   return (
     <div
       className="flex h-full flex-col bg-neutral-900 text-[15px] leading-relaxed text-neutral-100"
@@ -439,55 +523,8 @@ export default function App() {
                   {m.teks}
                 </div>
               );
-            if (m.k === "sesi")
-              return (
-                <div key={i} className="space-y-1">
-                  <div className="text-sm text-neutral-400">Pilih sesi untuk dilanjutkan:</div>
-                  <div className="overflow-hidden rounded-xl border border-neutral-700">
-                    {m.daftar.map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() =>
-                          kirimWs({ type: "command", command: "session_resume", arg: s.id })
-                        }
-                        className={
-                          "flex w-full items-center justify-between gap-3 px-4 py-2 text-left hover:bg-neutral-800 " +
-                          (s.id === m.aktif ? "bg-neutral-800" : "")
-                        }
-                      >
-                        <span className="truncate">{s.judul}</span>
-                        <span className="shrink-0 text-xs text-neutral-500">
-                          {s.id === m.aktif ? "sesi ini  ·  " : ""}
-                          {waktuSingkat(s.waktu)}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            if (m.k === "model")
-              return (
-                <div key={i} className="space-y-1">
-                  <div className="text-sm text-neutral-400">Pilih model:</div>
-                  <div className="overflow-hidden rounded-xl border border-neutral-700">
-                    {m.daftar.map((nama) => (
-                      <button
-                        key={nama}
-                        onClick={() => gantiModel(nama)}
-                        className={
-                          "flex w-full items-center justify-between gap-3 px-4 py-2 text-left font-mono text-sm hover:bg-neutral-800 " +
-                          (nama === model ? "bg-neutral-800" : "")
-                        }
-                      >
-                        <span>{nama}</span>
-                        {nama === model && (
-                          <span className="text-xs text-orange-400">dipakai</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
+            
+            
             return (
               <div key={i} className="space-y-1 text-sm">
                 <div className="flex items-center gap-2">
@@ -558,19 +595,76 @@ export default function App() {
       </main>
 
       <footer className="relative border-t border-neutral-800 p-3">
-        {saran.length > 0 && (
+        {pilihModel !== null && (
           <div className="absolute inset-x-3 bottom-full mx-auto mb-2 max-w-3xl overflow-hidden rounded-xl border border-neutral-700 bg-neutral-800 shadow-lg">
-            {saran.map((p) => (
+            <div className="border-b border-neutral-700 px-4 py-1.5 text-xs text-neutral-400">
+              Pilih model · ↑↓ untuk memilih · Enter untuk konfirmasi · Esc untuk batal
+            </div>
+            {daftarModel.map((nama, i) => (
               <button
-                key={p.nama}
+                key={nama}
+                onMouseEnter={() => setPilihModel(i)}
                 onClick={() => {
-                  setInput(p.nama + " ");
+                  gantiModel(nama);
+                  setPilihModel(null);
                   inputRef.current?.focus();
                 }}
-                className="flex w-full gap-3 px-4 py-2 text-left hover:bg-neutral-700"
+                className={
+                  "flex w-full items-center justify-between gap-3 px-4 py-2 text-left font-mono text-sm " +
+                  (i === pilihModel ? "bg-neutral-700" : "")
+                }
+              >
+                <span>{nama}</span>
+                {nama === model && <span className="text-xs text-orange-400">dipakai</span>}
+              </button>
+            ))}
+          </div>
+        )}
+                {saran.length > 0 && (
+          <div className="absolute inset-x-3 bottom-full mx-auto mb-2 max-w-3xl overflow-hidden rounded-xl border border-neutral-700 bg-neutral-800 shadow-lg">
+            {saran.map((p, i) => (
+              <button
+                key={p.nama}
+                onMouseEnter={() => setIdxSaran(i)}
+                onClick={() => {
+                  setInput("");
+                  perintah(p.nama);
+                }}
+                className={
+                  "flex w-full gap-3 px-4 py-2 text-left " +
+                  (i === idxSaran ? "bg-neutral-700" : "")
+                }
               >
                 <span className="w-24 shrink-0 font-mono text-orange-400">{p.nama}</span>
                 <span className="text-sm text-neutral-300">{p.ket}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {pilihSesi !== null && (
+          <div className="absolute inset-x-3 bottom-full mx-auto mb-2 max-w-3xl overflow-hidden rounded-xl border border-neutral-700 bg-neutral-800 shadow-lg">
+            <div className="border-b border-neutral-700 px-4 py-1.5 text-xs text-neutral-400">
+              Pilih sesi · ↑↓ untuk memilih · Enter untuk melanjutkan · Esc untuk batal
+            </div>
+            {daftarSesi.map((s, i) => (
+              <button
+                key={s.id}
+                onMouseEnter={() => setPilihSesi(i)}
+                onClick={() => {
+                  kirimWs({ type: "command", command: "session_resume", arg: s.id });
+                  setPilihSesi(null);
+                  inputRef.current?.focus();
+                }}
+                className={
+                  "flex w-full items-center justify-between gap-3 px-4 py-2 text-left " +
+                  (i === pilihSesi ? "bg-neutral-700" : "")
+                }
+              >
+                <span className="truncate">{s.judul}</span>
+                <span className="shrink-0 text-xs text-neutral-500">
+                  {waktuSingkat(s.waktu)}
+                </span>
               </button>
             ))}
           </div>
@@ -579,7 +673,12 @@ export default function App() {
           <textarea
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              setIdxSaran(0);
+              setPilihModel(null);
+              setPilihSesi(null);
+            }}
             onKeyDown={tekan}
             rows={1}
             placeholder="Tanyakan sesuatu... (Enter kirim, Shift+Enter baris baru)"
