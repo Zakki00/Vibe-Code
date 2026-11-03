@@ -33,6 +33,7 @@ type Sesi = { id: string; judul: string; waktu: string };
 type Izin = { id: string; alat: string; input: Masukan };
 
 const KATA = ["Memahami pertanyaan", "Memproses", "Menyusun jawaban"];
+const DAFTAR_EFFORT = ["low", "medium", "high", "xhigh"];
 
 const MAKS_BYTE = 10 * 1024 * 1024;
 const MAKS_LAMPIRAN = 5;
@@ -59,6 +60,7 @@ const PERINTAH = [
   { nama: "/help", ket: "Tampilkan daftar perintah" },
   { nama: "/new", ket: "Mulai sesi baru (riwayat lama tetap tersimpan)" },
   { nama: "/clear", ket: "Sama seperti /new" },
+  { nama: "/effort", ket: "Lihat atau ganti effort, contoh: /effort medium" },
   { nama: "/resume", ket: "Pilih dan lanjutkan sesi lama di folder ini" },
   {
     nama: "/model",
@@ -485,6 +487,9 @@ export default function App() {
   const [model, setModel] = useState(
     () => localStorage.getItem("vibe-model") || "Vibe_Code",
   );
+  const [effort, setEffort] = useState(
+    () => localStorage.getItem("vibe-effort") || "medium",
+  );
   const [daftarModel, setDaftarModel] = useState<string[]>([]);
   const [pilihModel, setPilihModel] = useState<number | null>(null);
   const [idxSaran, setIdxSaran] = useState(0);
@@ -519,6 +524,15 @@ export default function App() {
       setModel(nama);
       localStorage.setItem("vibe-model", nama);
       info(`Model diganti ke: ${nama}`);
+    },
+    [info],
+  );
+
+  const gantiEffort = useCallback(
+    (nilai: string) => {
+      setEffort(nilai);
+      localStorage.setItem("vibe-effort", nilai);
+      info(`Effort diganti ke: ${nilai}`);
     },
     [info],
   );
@@ -739,6 +753,10 @@ export default function App() {
         if (arg) gantiModel(arg);
         else kirimWs({ type: "command", command: "model_list", arg: "buka" });
         break;
+      case "/effort":
+        if(DAFTAR_EFFORT.includes(arg)) gantiEffort(arg);
+        else info(`Effort saat ini: ${effort}\nPilihan: ${DAFTAR_EFFORT.join(", ")}`);
+        break;
       case "/project":
         kirimWs(
           arg
@@ -774,6 +792,7 @@ export default function App() {
     kirimWs({
       prompt: teks,
       model,
+      effort,
       lampiran: lampiran.map(({ nama, tipe, data }) => ({ nama, tipe, data })),
     });
     setLampiran([]);
@@ -806,7 +825,7 @@ export default function App() {
     const asli = items[idx];
     if (!asli || asli.k !== "saya") return;
     setItems((prev) => [...prev.slice(0, idx), { k: "saya", teks: teksBaru }]);
-    kirimWs({ prompt: teksBaru, model });
+    kirimWs({ prompt: teksBaru, model, effort });
     setStatus("");
     setSibuk(true);
   }
@@ -827,6 +846,7 @@ export default function App() {
     kirimWs({
       prompt: userMsg.teks,
       model,
+      effort,
       lampiran: (userMsg.lampiran || []).map((n) => ({
         nama: n,
         tipe: "",
@@ -979,7 +999,7 @@ export default function App() {
                 : [model, ...daftarModel]
               ).map((n) => (
                 <option key={n} value={n}>
-                  {n}
+                  Model: {n}
                 </option>
               ))}
             </select>
@@ -994,6 +1014,22 @@ export default function App() {
           >
             <IkonUlang />
           </button>
+        </div>
+        <div className="relative" title="Tingkat usaha berpikir model">
+          <select
+            value={effort}
+            onChange={(e) => gantiEffort(e.target.value)}
+            className="appearance-none rounded-lg bg-neutral-800 pl-3 pr-8 py-1.5 font-mono text-xs text-neutral-300 outline-none hover:bg-neutral-700 border border-neutral-700 hover:border-neutral-600 cursor-pointer transition-colors"
+          >
+            {DAFTAR_EFFORT.map((n) => (
+              <option key={n} value={n}>
+                Effort: {n}
+              </option>
+            ))}
+          </select>
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">
+            ▼
+          </span>
         </div>
 
         <span

@@ -10,6 +10,7 @@ import os from "node:os";
 
 const APP_DIR = path.dirname(fileURLToPath(import.meta.url));
 let PROJECT_DIR = process.env.VIBE_PROJECT_DIR || process.cwd();
+const EFFORT = "medium"; // low, medium, high
 
 const PORT = 3000;
 const HOST = "127.0.0.1";
@@ -365,7 +366,8 @@ wss.on("connection", (ws) => {
     }
 
     // ---------- Pertanyaan baru ----------
-    const { prompt = "", model, lampiran } = data;
+    const { prompt = "", model, lampiran, effort } = data;
+    const effortLevel = ["low", "medium", "high"].includes(effort) ? effort : EFFORT;
     const adaLampiran = Array.isArray(lampiran) && lampiran.length > 0;
     if (typeof prompt !== "string" || (!prompt.trim() && !adaLampiran) || sedangJalan) return;
 
@@ -386,6 +388,8 @@ wss.on("connection", (ws) => {
         prompt: aliranPrompt(teks, gambar, berkas),
         options: {
           model: model || MODEL_DEFAULT,
+          effort: effortLevel,
+          env: { ...process.env, CLAUDE_CODE_EFFORT_LEVEL: effortLevel },
           cwd: PROJECT_DIR,
           abortController: ac,
           includePartialMessages: true,
