@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs/promises";
+import os from "node:os";
 
 const APP_DIR = path.dirname(fileURLToPath(import.meta.url));
 let PROJECT_DIR = process.env.VIBE_PROJECT_DIR || process.cwd();
@@ -21,6 +22,42 @@ const DAFTAR_MODEL = [
   "kr/deepseek-3.2",
   "kr/qwen3-coder-next",
 ];
+
+
+async function bacaEnvClaude() {
+  const sumber = [
+    path.join(os.homedir(), ".claude", "settings.json"),
+    path.join(PROJECT_DIR, ".claude", "settings.json"),
+    path.join(PROJECT_DIR, ".claude", "settings.local.json"),
+  ];
+  const env = {};
+  for (const f of sumber) {
+    try {
+      const d = JSON.parse(await fs.readFile(f, "utf-8"));
+      Object.assign(env, d.env ?? {});
+    } catch {
+      // file tidak ada atau bukan JSON valid: lewati
+    }
+  }
+  return { ...process.env, ...env };
+}
+async function bacaDaftarModel() {
+  const env = await bacaEnvClaude();
+  const nama = [];
+  for (const [k, v] of Object.entries(env)) {
+    if (
+      /^ANTHROPIC_DEFAULT_[A-Z0-9]+_MODEL$/.test(k) &&
+      typeof v === "string" &&
+      v.trim()
+    )
+      nama.push(v.trim());
+  }
+  return [...new Set(nama)]; // hapus duplikat
+}
+
+function ringkasModel(daftar) {
+  return { models: daftar.length ? daftar : DAFTAR_MODEL }; // cadangan
+}
 
 // ---------- Penyimpanan sesi (per proyek, di folder .vibe) ----------
 // Isi percakapan untuk dilanjutkan disimpan sendiri oleh Claude Code (lewat ID sesi).
@@ -104,6 +141,8 @@ const TIPE_GAMBAR = new Set(["image/png", "image/jpeg", "image/gif", "image/webp
 
 async function simpanLampiran(daftar) {
   const folder = path.join(folderVibe(), "uploads");
+  if (!Array.isArray(daftar) || daftar.length === 0)
+    return { gambar: [], berkas: [] };
   await fs.mkdir(folder, { recursive: true });
   const gambar = [];
   const berkas = [];
@@ -232,12 +271,15 @@ wss.on("connection", (ws) => {
     sedangJalan?.abort();
   });
 
-  kirim({
-    type: "init",
-    project: PROJECT_DIR,
-    models: DAFTAR_MODEL,
-    aplikasiSendiri: PROJECT_DIR === APP_DIR,
+  bacaDaftarModel().then((daftar) => {
+    kirim({
+      type: "init",
+      project: PROJECT_DIR,
+      ...ringkasModel(daftar),
+      aplikasiSendiri: PROJECT_DIR === APP_DIR,
+    })
   });
+
   const siap = muatSesiTerakhir();
 
   ws.on("message", async (raw) => {
@@ -281,6 +323,12 @@ wss.on("connection", (ws) => {
 
       if (command === "memory_info") {
         balas(await infoClaudeMd());
+      } else if(command === "model_list") {
+                kirim({
+                  type: "models",
+                  ...ringkasModel(await bacaDaftarModel()),
+                  buka: arg === "buka",
+                });
       } else if (command === "project_current") {
         balas({ path: PROJECT_DIR });
       } else if (command === "session_list") {
