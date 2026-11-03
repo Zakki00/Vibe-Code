@@ -43,6 +43,7 @@ Jawaban dikirim kembali secara bertahap (streaming), sehingga tampil sedikit dem
 2. Membuat tombol tambahan "Izinkan Selalu" ketika output meminta izin menjalankan atau membuat atau mengubah suatu file atau melakukan tindakan tertentu yang membutuhkan izin
 3. Ketika pesan yang panjang dikirimkan dari sisi input user akan diperpendek dan diberi tombol "Tampilkan Lebih Banyak" untuk melihat pesan yang panjang itu
 4. Ketika user mengirimkan pesan yang salah maka ada tombol "Edit Pesan" di samping pesan yang dikirim
+5. **Penanganan output AI khusus** — Meningkatkan tampilan output AI ketika respons berupa **table, code block, atau format khusus** dengan presentasi yang rapi di chat (seperti di Claude Desktop)
 
 ## Teknologi
 

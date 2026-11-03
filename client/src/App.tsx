@@ -187,6 +187,42 @@ const markdownKomponen: Components = {
       {children}
     </code>
   ),
+  // Custom table rendering for AI output tables
+  table: (props) => {
+    const convertChildren = (children: React.ReactNode): React.ReactNode => {
+      const arrays: React.ReactNode[] = [];
+      React.Children.forEach(children, (child) => {
+        if (child && typeof child === 'object') {
+          arrays.push(child);
+        }
+      });
+      return arrays.length > 0 ? arrays : children;
+    };
+
+    const rows = convertChildren(props.children);
+    if (!rows || rows.length === 0) return null;
+
+    return (
+      <div className="overflow-x-auto rounded-lg bg-neutral-800 my-4">
+        <table className="w-full text-sm text-neutral-100">
+          <tbody>
+            {rows.map((row, rowIndex) => {
+              const cells = React.Children.toArray(row?.props?.children ?? row).children;
+              return (
+                <tr key={rowIndex} className="border-b border-neutral-700">
+                  {Array.from(cells).map((cell, cellIndex) => (
+                    <td key={cellIndex} className="py-2 whitespace-pre min-w-[120px] text-neutral-300">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  },
 };
 
 function Diff({ lama, baru }: { lama: string; baru: string }) {
@@ -446,7 +482,7 @@ function PesanAI({
   const cukupPanjang = panjang > BATAS_PANJANG_PESAN;
   const tampilkan = expanded
     ? teks
-    : teks.slice(0, BATAS_PANJANG_PESAN) + "...";
+    : teks.slice(0, panjang) + "...";
 
   return (
     <div className="min-w-0 text-neutral-200 space-y-2 group">
