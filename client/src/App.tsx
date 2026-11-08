@@ -7,6 +7,7 @@ import {
 } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type Masukan = Record<string, unknown>;
 type Lampiran = {
@@ -120,7 +121,12 @@ function RenderWithThinking({ teks }: { teks: string }) {
         }
         return (
           <div key={i}>
-            <ReactMarkdown components={markdownKomponen}>{part}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={markdownKomponen}
+            >
+              {part}
+            </ReactMarkdown>
           </div>
         );
       })}
@@ -186,6 +192,28 @@ const markdownKomponen: Components = {
     <code className="rounded bg-neutral-700 px-1 py-0.5 font-mono text-[0.85em]">
       {children}
     </code>
+  ),
+  table: ({ children }) => (
+    <div className="mb-3 scroll-halus overflow-x-auto rounded-lg border border-neutral-700">
+      <table className="w-full border-collapse text-sm">{children}</table>
+    </div>
+  ),
+  thead: ({ children }) => <thead className="bg-neutral-800">{children}</thead>,
+  tr: ({ children }) => (
+    <tr className="border-b border-neutral-700 last:border-b-0">{children}</tr>
+  ),
+  th: ({ children, style }) => (
+    <th
+      style={style}
+      className="px-3 py-2 text-left font-semibold text-neutral-100"
+    >
+      {children}
+    </th>
+  ),
+  td: ({ children, style }) => (
+    <td style={style} className="px-3 py-2 align-top text-neutral-300">
+      {children}
+    </td>
   ),
   // Custom table rendering for AI output tables
   // table: (props) => {
@@ -364,10 +392,8 @@ function PesanUser({
   const [tersalin, setTersalin] = useState(false);
   const [draf, setDraf] = useState(teks);
   const panjang = teks.length;
-  const cukupPanjang = panjang > BATAS_PANJANG_PESAN;
-  const tampilkan = expanded
-    ? teks
-    : teks.slice(0, BATAS_PANJANG_PESAN) + "...";
+  const cukupPanjang = false;
+  const tampilkan = teks;
 
   if (mengedit)
     return (
@@ -482,9 +508,7 @@ function PesanAI({
 }) {
   const panjang = teks.length;
   const cukupPanjang = panjang > BATAS_PANJANG_PESAN;
-  const tampilkan = expanded
-    ? teks
-    : teks.slice(0, panjang) + "...";
+  const tampilkan = expanded ? teks : teks.slice(0, panjang) + "...";
 
   return (
     <div className="min-w-0 text-neutral-200 space-y-2 group">
@@ -792,8 +816,11 @@ export default function App() {
         else kirimWs({ type: "command", command: "model_list", arg: "buka" });
         break;
       case "/effort":
-        if(DAFTAR_EFFORT.includes(arg)) gantiEffort(arg);
-        else info(`Effort saat ini: ${effort}\nPilihan: ${DAFTAR_EFFORT.join(", ")}`);
+        if (DAFTAR_EFFORT.includes(arg)) gantiEffort(arg);
+        else
+          info(
+            `Effort saat ini: ${effort}\nPilihan: ${DAFTAR_EFFORT.join(", ")}`,
+          );
         break;
       case "/project":
         kirimWs(
