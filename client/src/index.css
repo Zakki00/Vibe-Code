@@ -26,3 +26,73 @@ body,
     scrollbar-width: thin;
     scrollbar-color: #404040 transparent;
 }
+
+.hljs {
+    color: #c9d1d9;
+}
+
+.hljs-comment,
+.hljs-quote {
+    color: #8b949e;
+    font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-doctag {
+    color: #ff7b72;
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-meta .hljs-string {
+    color: #a5d6ff;
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet {
+    color: #79c0ff;
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-section {
+    color: #d2a8ff;
+}
+
+.hljs-title.class_,
+.hljs-type,
+.hljs-built_in {
+    color: #ffa657;
+}
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-variable,
+.hljs-params {
+    color: #79c0ff;
+}
+
+.hljs-tag,
+.hljs-name,
+.hljs-selector-class,
+.hljs-selector-id {
+    color: #7ee787;
+}
+
+.hljs-meta {
+    color: #79c0ff;
+}
+
+.hljs-addition {
+    color: #aff5b4;
+    background: #033a16;
+}
+
+.hljs-deletion {
+    color: #ffdcd7;
+    background: #67060c;
+}

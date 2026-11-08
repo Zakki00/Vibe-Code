@@ -8,6 +8,7 @@ import {
 import type { KeyboardEvent, ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
 
 type Masukan = Record<string, unknown>;
 type Lampiran = {
@@ -123,6 +124,9 @@ function RenderWithThinking({ teks }: { teks: string }) {
           <div key={i}>
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
+              rehypePlugins={[
+                [rehypeHighlight, { detect: true, ignoreMissing: true }],
+              ]}
               components={markdownKomponen}
             >
               {part}
@@ -188,11 +192,14 @@ const markdownKomponen: Components = {
       {children}
     </pre>
   ),
-  code: ({ children }) => (
-    <code className="rounded bg-neutral-700 px-1 py-0.5 font-mono text-[0.85em]">
-      {children}
-    </code>
-  ),
+  code: ({ children, className }) =>
+    className ? (
+      <code className={className}>{children}</code>
+    ) : (
+      <code className="rounded bg-neutral-700 px-1 py-0.5 font-mono text-[0.85em]">
+        {children}
+      </code>
+    ),
   table: ({ children }) => (
     <div className="mb-3 scroll-halus overflow-x-auto rounded-lg border border-neutral-700">
       <table className="w-full border-collapse text-sm">{children}</table>
@@ -392,8 +399,10 @@ function PesanUser({
   const [tersalin, setTersalin] = useState(false);
   const [draf, setDraf] = useState(teks);
   const panjang = teks.length;
-  const cukupPanjang = false;
-  const tampilkan = teks;
+  const cukupPanjang = panjang > BATAS_PANJANG_PESAN;
+  const tampilkan = expanded
+    ? teks
+    : teks.slice(0, BATAS_PANJANG_PESAN) + "...";
 
   if (mengedit)
     return (
@@ -507,8 +516,8 @@ function PesanAI({
   onRegenerate?: () => void;
 }) {
   const panjang = teks.length;
-  const cukupPanjang = panjang > BATAS_PANJANG_PESAN;
-  const tampilkan = expanded ? teks : teks.slice(0, panjang) + "...";
+    const cukupPanjang = false;
+    const tampilkan = teks;
 
   return (
     <div className="min-w-0 text-neutral-200 space-y-2 group">

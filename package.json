@@ -2,7 +2,7 @@
   "name": "vibe-app",
   "version": "1.0.0",
   "bin": {
-  "vibe-app": "start.mjs"
+    "vibe-app": "start.mjs"
   },
   "description": "",
   "main": "index.js",
@@ -19,6 +19,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "express": "^5.3.0",
     "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
     "tailwindcss": "^4.3.3",
     "ws": "^8.22.0"
   }
