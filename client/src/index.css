@@ -12,13 +12,9 @@ body,
 }
 
 /* Tetap bisa digulir, tetapi scrollbar disembunyikan. */
-.tanpa-scrollbar {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-.tanpa-scrollbar::-webkit-scrollbar {
-    display: none;
+.scroll-tipis {
+    scrollbar-width: thin;
+    scrollbar-color: #525252 transparent;
 }
 
 /* Scrollbar tipis berwarna gelap (untuk blok kode yang digulir ke samping). */

@@ -1,4 +1,5 @@
 import {
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -6,7 +7,7 @@ import {
   useState,
 } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
-import ReactMarkdown, { type Components } from "react-markdown";
+import ReactMarkdown, { type Components, type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 
@@ -36,6 +37,11 @@ type Izin = { id: string; alat: string; input: Masukan };
 
 const KATA = ["Memahami pertanyaan", "Memproses", "Menyusun jawaban"];
 const DAFTAR_EFFORT = ["low", "medium", "high", "xhigh"];
+
+const REMARK_PLUGINS: Options["remarkPlugins"] = [remarkGfm];
+const REHYPE_PLUGINS: Options["rehypePlugins"] = [
+  [rehypeHighlight, { detect: false, ignoreMissing: true }],
+];
 
 const MAKS_BYTE = 10 * 1024 * 1024;
 const MAKS_LAMPIRAN = 5;
@@ -97,8 +103,8 @@ const waktuSingkat = (iso: string) =>
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const namaFile = (p: string) => p.split(/[\\/]/).pop() || p;
 
-// Component untuk render thinking blocks
-function RenderWithThinking({ teks }: { teks: string }) {
+
+const RenderWithThinking = memo(function RenderWithThinking({ teks }: { teks: string }) {
   const parts = teks.split(/(<thinking>[\s\S]*?<\/thinking>)/);
   return (
     <div className="space-y-2">
@@ -123,10 +129,8 @@ function RenderWithThinking({ teks }: { teks: string }) {
         return (
           <div key={i}>
             <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[
-                [rehypeHighlight, { detect: true, ignoreMissing: true }],
-              ]}
+              remarkPlugins={REMARK_PLUGINS}
+              rehypePlugins={REHYPE_PLUGINS}
               components={markdownKomponen}
             >
               {part}
@@ -136,7 +140,7 @@ function RenderWithThinking({ teks }: { teks: string }) {
       })}
     </div>
   );
-}
+});
 
 function ringkasAlat(nama: string, input: Masukan) {
   const f = str(input.file_path);
@@ -222,52 +226,12 @@ const markdownKomponen: Components = {
       {children}
     </td>
   ),
-  // Custom table rendering for AI output tables
-  // table: (props) => {
-  //   const convertChildren = (children: React.ReactNode): React.ReactNode => {
-  //     const arrays: React.ReactNode[] = [];
-  //     React.Children.forEach(children, (child) => {
-  //       if (child && typeof child === 'object') {
-  //         arrays.push(child);
-  //       }
-  //     });
-  //     return arrays.length > 0 ? arrays : children;
-  //   };
-
-  //   const rows = convertChildren(props.children);
-  //   if (!rows || rows.length === 0) return null;
-
-  //   return (
-  //     <div className="overflow-x-auto rounded-lg bg-neutral-800 my-4">
-  //       <table className="w-full text-sm text-neutral-100">
-  //         <tbody>
-  //           {rows.map((row, rowIndex) => {
-  //             const cells = React.Children.toArray(row?.props?.children ?? row).children;
-  //             return (
-  //               <tr key={rowIndex} className="border-b border-neutral-700">
-  //                 {Array.from(cells).map((cell, cellIndex) => (
-  //                   <td key={cellIndex} className="py-2 whitespace-pre min-w-[120px] text-neutral-300">
-  //                     {cell}
-  //                   </td>
-  //                 ))}
-  //               </tr>
-  //             );
-  //           })}
-  //         </tbody>
-  //       </table>
-  //     </div>
-  //   );
-  // },
-
-  // ----- maintenance ------
 };
 
-function Diff({ lama, baru }: { lama: string; baru: string }) {
+const Diff =  memo(function Diff({ lama, baru }: { lama: string; baru: string }) {
   const baris = (t: string) => (t === "" ? [] : t.split("\n"));
   const lamaLines = baris(lama);
   const baruLines = baris(baru);
-  const maxNum = Math.max(lamaLines.length, baruLines.length);
-  const numWidth = String(maxNum).length;
 
   return (
     <div className="scroll-halus max-h-72 overflow-auto rounded-lg bg-neutral-950 font-mono text-xs">
@@ -308,9 +272,9 @@ function Diff({ lama, baru }: { lama: string; baru: string }) {
       </div>
     </div>
   );
-}
+});
 
-function IsiAlat({ nama, input }: { nama: string; input: Masukan }) {
+const IsiAlat = memo(function IsiAlat({ nama, input }: { nama: string; input: Masukan }) {
   if (nama === "Edit")
     return <Diff lama={str(input.old_string)} baru={str(input.new_string)} />;
   if (nama === "Write") return <Diff lama="" baru={str(input.content)} />;
@@ -321,7 +285,7 @@ function IsiAlat({ nama, input }: { nama: string; input: Masukan }) {
       {teks}
     </pre>
   );
-}
+});
 
 const ikonProps = {
   viewBox: "0 0 24 24",
@@ -580,6 +544,9 @@ export default function App() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const mainRef = useRef<HTMLElement>(null);
+  const dekatBawah = useRef(true);
+
   const info = useCallback(
     (teks: string) => setItems((p) => [...p, { k: "info", teks }]),
     [],
@@ -776,8 +743,9 @@ export default function App() {
   }, [sibuk]);
 
   useEffect(() => {
-    bawah.current?.scrollIntoView({ behavior: "smooth" });
-  }, [items, izin, status]);
+    const el = mainRef.current;
+    if (el && dekatBawah.current) el.scrollTop = el.scrollHeight;
+  }, [items, izin, status, sibuk]);
 
   useEffect(() => {
     if (!sibuk) inputRef.current?.focus();
@@ -855,6 +823,7 @@ export default function App() {
     const teks = input.trim();
     if ((!teks && lampiran.length === 0) || sibuk) return;
     setInput("");
+    dekatBawah.current = true;
     if (teks.startsWith("/") && lampiran.length === 0) {
       perintah(teks);
       return;
@@ -930,6 +899,28 @@ export default function App() {
     setStatus("");
     setSibuk(true);
   }
+
+  const kirimUlangRef = useRef(kirimUlang);
+  kirimUlangRef.current = kirimUlang;
+  const regenerateRef = useRef(regenerateFromIndex);
+  regenerateRef.current = regenerateFromIndex;
+
+  const onEditStabil = useCallback(
+    (i: number, t: string) => kirimUlangRef.current(i, t),
+    [],
+  );
+  const onRegenerateStabil = useCallback(
+    (i: number) => regenerateRef.current(i),
+    [],
+  );
+  const onToggleStabil = useCallback((i: number) => {
+    setExpandedMessages((prev) => {
+      const s = new Set(prev);
+      if (s.has(i)) s.delete(i);
+      else s.add(i);
+      return s;
+    });
+  }, []);
 
   function jawabIzin(izinkan: boolean, selalu: boolean = false) {
     if (!izin) return;
@@ -1122,8 +1113,14 @@ export default function App() {
       )}
 
       <main
+        ref={mainRef}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          dekatBawah.current =
+            el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+        }}
         className={
-          "tanpa-scrollbar flex-1 overflow-y-auto px-4 py-6 transition-colors " +
+          "scroll-tipis flex-1 overflow-y-auto px-4 py-6 transition-colors " +
           (dragOver ? "bg-neutral-800" : "")
         }
         onDragOver={(e) => {
@@ -1149,85 +1146,13 @@ export default function App() {
               perintah.
             </div>
           )}
-          {items.map((m, i) => {
-            if (m.k === "saya")
-              return (
-                <PesanUser
-                  key={i}
-                  teks={m.teks}
-                  lampiran={m.lampiran}
-                  expanded={expandedMessages.has(i)}
-                  onToggleExpand={() => {
-                    setExpandedMessages((prev) => {
-                      const newSet = new Set(prev);
-                      if (newSet.has(i)) newSet.delete(i);
-                      else newSet.add(i);
-                      return newSet;
-                    });
-                  }}
-                  onEdit={(teksBaru) => kirimUlang(i, teksBaru)}
-                  onCopy={() => navigator.clipboard.writeText(m.teks)}
-                  onRegenerate={() => regenerateFromIndex(i)}
-                />
-              );
-            if (m.k === "ai")
-              return (
-                <PesanAI
-                  key={i}
-                  teks={m.teks}
-                  expanded={expandedMessages.has(i)}
-                  onToggleExpand={() => {
-                    setExpandedMessages((prev) => {
-                      const newSet = new Set(prev);
-                      if (newSet.has(i)) newSet.delete(i);
-                      else newSet.add(i);
-                      return newSet;
-                    });
-                  }}
-                  onCopy={() => navigator.clipboard.writeText(m.teks)}
-                  onRegenerate={() => regenerateFromIndex(i - 1)}
-                />
-              );
-            if (m.k === "info")
-              return (
-                <div
-                  key={i}
-                  className="whitespace-pre-wrap text-sm italic text-neutral-400"
-                >
-                  {m.teks}
-                </div>
-              );
-
-            return (
-              <div key={i} className="space-y-1 text-sm">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={
-                      "h-2.5 w-2.5 rounded-full " +
-                      (m.galat
-                        ? "bg-red-500"
-                        : m.selesai
-                          ? "bg-green-500"
-                          : "animate-pulse bg-neutral-400")
-                    }
-                  />
-                  <span className="font-semibold">{m.ringkas}</span>
-                </div>
-                {m.detail && (
-                  <div className="ml-1 break-all pl-4 font-mono text-xs text-neutral-500">
-                    └ {m.detail}
-                  </div>
-                )}
-                {m.selesai &&
-                  !m.galat &&
-                  (m.nama === "Edit" || m.nama === "Write") && (
-                    <div className="pl-4">
-                      <IsiAlat nama={m.nama} input={m.input} />
-                    </div>
-                  )}
-              </div>
-            );
-          })}
+          <DaftarItem
+            items={items}
+            expanded={expandedMessages}
+            onToggle={onToggleStabil}
+            onEdit={onEditStabil}
+            onRegenerate={onRegenerateStabil}
+          />
 
           {izin && (
             <div className="space-y-3 rounded-2xl border border-yellow-600 bg-neutral-800 p-4">
@@ -1430,7 +1355,7 @@ export default function App() {
               }}
               rows={1}
               placeholder="Tanyakan sesuatu... (Enter kirim, Shift+Enter baris baru)"
-              className="tanpa-scrollbar flex-1 resize-none overflow-y-auto bg-transparent outline-none placeholder:text-neutral-500"
+              className="tscroll-tipis flex-1 resize-none overflow-y-auto bg-transparent outline-none placeholder:text-neutral-500"
             />
             {sibuk ? (
               <button
@@ -1458,3 +1383,86 @@ export default function App() {
     </div>
   );
 }
+
+const DaftarItem = memo(function DaftarItem({
+  items,
+  expanded,
+  onToggle,
+  onEdit,
+  onRegenerate,
+}: {
+  items: Item[];
+  expanded: Set<number>;
+  onToggle: (i: number) => void;
+  onEdit: (i: number, teksBaru: string) => void;
+  onRegenerate: (i: number) => void;
+}) {
+  return (
+    <>
+      {items.map((m, i) => {
+        if (m.k === "saya")
+          return (
+            <PesanUser
+              key={i}
+              teks={m.teks}
+              lampiran={m.lampiran}
+              expanded={expanded.has(i)}
+              onToggleExpand={() => onToggle(i)}
+              onEdit={(t) => onEdit(i, t)}
+              onCopy={() => navigator.clipboard.writeText(m.teks)}
+              onRegenerate={() => onRegenerate(i)}
+            />
+          );
+        if (m.k === "ai")
+          return (
+            <PesanAI
+              key={i}
+              teks={m.teks}
+              expanded={expanded.has(i)}
+              onToggleExpand={() => onToggle(i)}
+              onCopy={() => navigator.clipboard.writeText(m.teks)}
+              onRegenerate={() => onRegenerate(i - 1)}
+            />
+          );
+        if (m.k === "info")
+          return (
+            <div
+              key={i}
+              className="whitespace-pre-wrap text-sm italic text-neutral-400"
+            >
+              {m.teks}
+            </div>
+          );
+        return (
+          <div key={i} className="space-y-1 text-sm">
+            <div className="flex items-center gap-2">
+              <span
+                className={
+                  "h-2.5 w-2.5 rounded-full " +
+                  (m.galat
+                    ? "bg-red-500"
+                    : m.selesai
+                      ? "bg-green-500"
+                      : "animate-pulse bg-neutral-400")
+                }
+              />
+              <span className="font-semibold">{m.ringkas}</span>
+            </div>
+            {m.detail && (
+              <div className="ml-1 break-all pl-4 font-mono text-xs text-neutral-500">
+                └ {m.detail}
+              </div>
+            )}
+            {m.selesai &&
+              !m.galat &&
+              (m.nama === "Edit" || m.nama === "Write") && (
+                <div className="pl-4">
+                  <IsiAlat nama={m.nama} input={m.input} />
+                </div>
+              )}
+          </div>
+        );
+      })}
+    </>
+  );
+});
