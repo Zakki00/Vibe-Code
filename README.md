@@ -22,28 +22,40 @@ Jawaban dikirim kembali secara bertahap (streaming), sehingga tampil sedikit dem
 
 ## Fitur
 
-**Sudah ada**
+- Percakapan dengan respons AI yang dikirim secara streaming.
+- Tampilan respons Markdown, termasuk tabel, daftar, tautan, dan blok kode dengan pewarnaan sintaks.
+- Riwayat sesi lokal per proyek di folder `.vibe`, termasuk melanjutkan sesi sebelumnya dan memulai sesi baru.
+- Pemilihan model dari daftar yang dikonfigurasi di lingkungan Claude atau daftar cadangan di backend.
+- Pengaturan tingkat effort (`low`, `medium`, `high`) per permintaan.
+- Lampiran hingga 5 file, maksimum 10 MB per file; gambar PNG, JPEG, GIF, dan WebP dikirim sebagai gambar, sedangkan file lain tersedia untuk dibaca asisten.
+- Persetujuan pengguna sebelum alat asisten dijalankan, dengan pilihan izinkan atau tolak.
+- Kartu aktivitas alat dan ringkasan perubahan untuk alat baca/tulis/edit.
+- Perintah chat: `/help`, `/new`, `/clear`, `/effort`, `/resume`, `/model`, `/project`, dan `/memory`.
+- Mengganti folder kerja proyek dari antarmuka.
+- Tema gelap dan tampilan yang dapat digunakan di jendela aplikasi.
+- Skrip `start.mjs` untuk menyalakan backend, frontend, dan 9Router (bila belum aktif) dalam satu langkah.
 
-- Chat dengan jawaban streaming
-- Jawaban AI ditampilkan dalam format Markdown
-- Sesi percakapan berlanjut selama koneksi masih terbuka
-- Kartu persetujuan **Izinkan / Tolak** sebelum asisten memakai alat tertentu (*dalam tahap pengujian*)
+> Catatan: backend saat ini membatasi alat yang diizinkan ke `Read`, `Glob`, dan `Grep`. Tindakan lain yang diminta SDK akan memerlukan persetujuan melalui antarmuka; periksa setiap permintaan sebelum menyetujuinya.
 
-**Rencana**
+### Penyimpanan sesi
 
-- Pemilihan folder proyek yang dibaca asisten
-- Penyimpanan riwayat percakapan secara lokal per proyek (SQLite)
-- Tampilan diff untuk perubahan kode
-- Perintah seperti `/model`, `/clear`, dan `/project`
-- Satu perintah terminal yang menyalakan semuanya sekaligus
+Vibe Code menyimpan metadata sesi dan riwayat tampilan di folder `.vibe` pada folder proyek aktif. Riwayat ini dipakai untuk menampilkan kembali pesan dan kartu alat; kelanjutan percakapan agen menggunakan ID sesi Claude Agent SDK. Lampiran yang diunggah disimpan di `.vibe/uploads`.
 
-**Fitur Lanjutan**
+Fitur yang belum tersedia tidak dicantumkan sebagai fitur aktif. Contohnya, tombol **Izinkan Selalu**, SQLite, dan pengeditan pesan yang telah dikirim belum diimplementasikan.
 
-1. Menambahkan fitur upload gambar ✅
-2. Membuat tombol tambahan "Izinkan Selalu" ketika output meminta izin menjalankan atau membuat atau mengubah suatu file atau melakukan tindakan tertentu yang membutuhkan izin
-3. Ketika pesan yang panjang dikirimkan dari sisi input user akan diperpendek dan diberi tombol "Tampilkan Lebih Banyak" untuk melihat pesan yang panjang itu
-4. Ketika user mengirimkan pesan yang salah maka ada tombol "Edit Pesan" di samping pesan yang dikirim
-5. **Penanganan output AI khusus** — Meningkatkan tampilan output AI ketika respons berupa **table, code block, atau format khusus** dengan presentasi yang rapi di chat (seperti di Claude Desktop)
+## Commands
+
+| Perintah | Fungsi |
+|---|---|
+| `/help` | Menampilkan daftar perintah |
+| `/new` atau `/clear` | Memulai sesi baru; sesi lama tetap tersimpan |
+| `/effort [low\|medium\|high]` | Melihat atau mengganti tingkat effort |
+| `/resume` | Memilih sesi lama untuk dilanjutkan |
+| `/model [nama-model]` | Melihat atau mengganti model |
+| `/project [jalur]` | Melihat atau mengganti folder proyek |
+| `/memory` | Menampilkan informasi file `CLAUDE.md` di folder proyek aktif |
+
+Perintah tersedia melalui antarmuka chat; tidak semua perintah menerima argumen kosong untuk mengubah pengaturan.
 
 ## Teknologi
 
@@ -100,62 +112,53 @@ Nama model diatur di `server.mjs` pada opsi `model` (saat ini memakai combo 9Rou
 
 ## Menjalankan
 
-**Mode pemakaian** (satu server backend yang menyajikan tampilan hasil build):
+Skrip utama menjalankan backend dan frontend pengembangan, memeriksa 9Router, lalu membuka aplikasi di Microsoft Edge:
+
+```bash
+npm start
+```
+
+Secara default frontend berjalan di `http://localhost:5173` dan backend di `http://localhost:3000`. Pastikan dependensi root dan frontend sudah dipasang, serta konfigurasi 9Router dan token sudah tersedia.
+
+Untuk menjalankan komponennya secara terpisah:
+
+```bash
+# Terminal 1 - folder utama proyek
+node server.mjs
+
+# Terminal 2 - folder client
+cd client
+npm run dev
+```
+
+Untuk membuat build frontend produksi:
 
 ```bash
 cd client
 npm run build
-cd ..
-node server.mjs
 ```
 
-Lalu buka `http://localhost:3000`.
-
-Agar backend menyajikan hasil build, pastikan baris ini ada di `server.mjs`:
-
-```js
-app.use(express.static("client/dist"));
-```
-
-**Mode pengembangan** (tampilan dimuat ulang otomatis saat kode diedit), gunakan dua terminal:
-
-```bash
-# Terminal 1 - folder vibe-app
-node server.mjs
-
-# Terminal 2 - folder vibe-app/client
-npm run dev
-```
-
-Lalu buka `http://localhost:5173`. Pastikan 9Router sudah aktif sebelum memulai.
+Backend menyajikan file dari `client/dist` jika build tersebut tersedia. Saat mengakses lewat frontend Vite, konfigurasi Vite meneruskan koneksi WebSocket `/ws` ke backend di `localhost:3000`.
 
 ## Struktur proyek
 
 ```
 vibe-app/
-├── server.mjs          # backend: WebSocket + Agent SDK
-├── test.mjs            # skrip uji koneksi Agent SDK ke 9Router
-├── public/             # halaman uji sederhana (opsional)
-├── client/             # tampilan React + Vite + Tailwind
+├── start.mjs            # menjalankan router, backend, dan frontend pengembangan
+├── server.mjs           # Express, WebSocket, Agent SDK, sesi, dan lampiran
+├── test.mjs             # skrip uji koneksi Agent SDK ke 9Router
+├── public/              # aset/halaman statis tambahan
+├── client/              # antarmuka React + Vite + Tailwind CSS
 │   ├── src/
-│   │   ├── App.tsx     # halaman chat
-│   │   └── index.css
-│   └── vite.config.ts  # plugin Tailwind + proxy /ws ke backend
-└── package.json
+│   │   ├── App.tsx       # chat, perintah, sesi, lampiran, dan persetujuan alat
+│   │   ├── index.css     # gaya global dan scrollbar
+│   │   └── App.css       # gaya tambahan
+│   └── vite.config.ts    # plugin React/Tailwind dan proxy WebSocket
+├── .vibe/               # data sesi dan lampiran lokal (dibuat saat digunakan)
+└── package.json         # skrip dan dependensi backend
 ```
 
-## .gitignore yang disarankan
-
-Buat file `.gitignore` di folder utama sebelum `git add`, agar folder paket dan data sensitif tidak ikut terunggah:
-
-```
-node_modules/
-client/node_modules/
-client/dist/
-.env
-*.log
-.vibe/
-```
+Data di `.vibe/` bersifat lokal untuk folder proyek aktif. Pastikan folder tersebut dan file rahasia tidak ikut dikomit.
 
 ## Catatan penting
 
