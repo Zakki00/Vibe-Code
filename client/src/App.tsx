@@ -10,6 +10,7 @@ import type { KeyboardEvent, ReactNode } from "react";
 import ReactMarkdown, { type Components, type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
+import RobotPixel from "./RobotPixel";
 
 type Masukan = Record<string, unknown>;
 type Lampiran = {
@@ -1077,7 +1078,7 @@ export default function App() {
     >
       <header className="flex items-center gap-3 border-b border-neutral-800 px-4 py-3">
         <span className="text-base font-semibold tracking-tight flex items-center gap-2">
-          <span className="text-xl">🤖</span>
+          <RobotPixel ukuran={26} sibuk={sibuk} />
           Claude Code
         </span>
         <span
