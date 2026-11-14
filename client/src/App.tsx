@@ -20,7 +20,7 @@ type Lampiran = {
 };
 type Item =
   | { k: "saya"; teks: string; lampiran?: string[] }
-  | { k: "ai"; teks: string }
+  | { k: "ai"; teks: string; durasiDetik?: number }
   | { k: "info"; teks: string }
   | {
       k: "alat";
@@ -99,6 +99,15 @@ const waktuSingkat = (iso: string) =>
     dateStyle: "medium",
     timeStyle: "short",
   });
+
+const formatDurasi = (totalDetik: number) => {
+  const jam = Math.floor(totalDetik / 3600);
+  const menit = Math.floor((totalDetik % 3600) / 60);
+  const detik = totalDetik % 60;
+  if (jam > 0) return `${jam} jam ${menit} menit ${detik} detik`;
+  if (menit > 0) return `${menit} menit ${detik} detik`;
+  return `${detik} detik`;
+};
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const namaFile = (p: string) => p.split(/[\\/]/).pop() || p;
@@ -468,12 +477,14 @@ function PesanUser({
 }
 function PesanAI({
   teks,
+  durasiDetik,
   expanded,
   onToggleExpand,
   onCopy,
   onRegenerate,
 }: {
   teks: string;
+  durasiDetik?: number;
   expanded: boolean;
   onToggleExpand: () => void;
   onCopy?: () => void;
@@ -486,6 +497,11 @@ function PesanAI({
   return (
     <div className="min-w-0 text-neutral-200 space-y-2 group">
       <RenderWithThinking teks={tampilkan} />
+      {durasiDetik !== undefined && (
+        <div className="text-xs text-neutral-500">
+          Dijawab dalam {formatDurasi(durasiDetik)}
+        </div>
+      )}
       {cukupPanjang && (
         <button
           onClick={onToggleExpand}
@@ -534,7 +550,7 @@ export default function App() {
   );
   const [pilihSesi, setPilihSesi] = useState<number | null>(null);
   const [projectPath, setProjectPath] = useState("");
-  const [aplikasiSendiri, setAplikasiSendiri] = useState(false);
+  const [, setAplikasiSendiri] = useState(false);
   const [terhubung, setTerhubung] = useState(false);
   const [lampiran, setLampiran] = useState<Lampiran[]>([]);
   const [dragOver, setDragOver] = useState(false);
@@ -546,6 +562,7 @@ export default function App() {
 
   const mainRef = useRef<HTMLElement>(null);
   const dekatBawah = useRef(true);
+  const mulaiResponsRef = useRef(0);
 
   const info = useCallback(
     (teks: string) => setItems((p) => [...p, { k: "info", teks }]),
@@ -631,7 +648,7 @@ export default function App() {
             if (akhir?.k === "ai")
               return [
                 ...p.slice(0, -1),
-                { k: "ai", teks: akhir.teks + m.text },
+                { k: "ai", teks: akhir.teks + m.text, durasiDetik: undefined },
               ];
             return [...p, { k: "ai", teks: m.text }];
           });
@@ -671,14 +688,29 @@ export default function App() {
           }
         }
         if (m.type === "done") {
+          const durasiDetik = Math.floor(
+            (Date.now() - mulaiResponsRef.current) / 1000,
+          );
+          setDetik(durasiDetik);
+          setItems((p) => {
+            const terakhir = p[p.length - 1];
+            if (terakhir?.k !== "ai") return p;
+            return [
+              ...p.slice(0, -1),
+              { ...terakhir, durasiDetik },
+            ];
+          });
           setSibuk(false);
           setStatus("");
           setIzin(null);
+          mulaiResponsRef.current = 0;
         }
         if (m.type === "error") {
           info("[error] " + m.message);
           setSibuk(false);
           setStatus("");
+          setIzin(null);
+          mulaiResponsRef.current = 0;
         }
         if (m.type === "command_result") {
           const d = m.data;
@@ -733,10 +765,8 @@ export default function App() {
 
   useEffect(() => {
     if (!sibuk) return;
-    const awal = Date.now();
-    setDetik(0);
     const t = setInterval(
-      () => setDetik(Math.floor((Date.now() - awal) / 1000)),
+      () => setDetik(Math.floor((Date.now() - mulaiResponsRef.current) / 1000)),
       1000,
     );
     return () => clearInterval(t);
@@ -819,6 +849,12 @@ export default function App() {
     }
   }
 
+  function mulaiMengukurRespons() {
+    mulaiResponsRef.current = Date.now();
+    setDetik(0);
+    setSibuk(true);
+  }
+
   function kirim() {
     const teks = input.trim();
     if ((!teks && lampiran.length === 0) || sibuk) return;
@@ -840,7 +876,7 @@ export default function App() {
     });
     setLampiran([]);
     setStatus("");
-    setSibuk(true);
+    mulaiMengukurRespons();
   }
 
   async function tambahBerkas(files: File[]) {
@@ -870,7 +906,7 @@ export default function App() {
     setItems((prev) => [...prev.slice(0, idx), { k: "saya", teks: teksBaru }]);
     kirimWs({ prompt: teksBaru, model, effort });
     setStatus("");
-    setSibuk(true);
+    mulaiMengukurRespons();
   }
 
   function regenerateFromIndex(userMsgIndex: number) {
@@ -897,7 +933,7 @@ export default function App() {
       })),
     });
     setStatus("");
-    setSibuk(true);
+    mulaiMengukurRespons();
   }
 
   const kirimUlangRef = useRef(kirimUlang);
@@ -1193,7 +1229,7 @@ export default function App() {
             <div className="flex items-center gap-2 text-sm text-neutral-400">
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-neutral-600 border-t-orange-500" />
               <span>
-                {label}... ({detik} dtk)
+                {label}... ({formatDurasi(detik)})
               </span>
             </div>
           )}
@@ -1418,6 +1454,7 @@ const DaftarItem = memo(function DaftarItem({
             <PesanAI
               key={i}
               teks={m.teks}
+              durasiDetik={m.durasiDetik}
               expanded={expanded.has(i)}
               onToggleExpand={() => onToggle(i)}
               onCopy={() => navigator.clipboard.writeText(m.teks)}
