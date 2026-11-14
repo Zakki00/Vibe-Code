@@ -267,9 +267,10 @@ function PesanUser({
   const [draf, setDraf] = useState(teks);
   const panjang = teks.length;
   const cukupPanjang = panjang > BATAS_PANJANG_PESAN;
-  const tampilkan = expanded
-    ? teks
-    : teks.slice(0, BATAS_PANJANG_PESAN) + "...";
+  const tampilkan =
+    cukupPanjang && !expanded
+      ? teks.slice(0, BATAS_PANJANG_PESAN) + "..."
+      : teks;
 
   if (mengedit)
     return (
@@ -369,45 +370,31 @@ function PesanUser({
     </div>
   );
 }
+
+
+
 function PesanAI({
   teks,
   durasiDetik,
-  expanded,
-  onToggleExpand,
   onCopy,
   onRegenerate,
 }: {
   teks: string;
   durasiDetik?: number;
-  expanded: boolean;
-  onToggleExpand: () => void;
   onCopy?: () => void;
   onRegenerate?: () => void;
 }) {
-  const panjang = teks.length;
-    const cukupPanjang = false;
-    const tampilkan = teks;
-
   return (
     <div className="min-w-0 text-neutral-200 space-y-2 group">
-      <Suspense fallback={<div className="whitespace-pre-wrap">{tampilkan}</div>}>
-        <RenderWithThinking teks={tampilkan} />
+      <Suspense fallback={<div className="whitespace-pre-wrap">{teks || "..."}</div>}>
+        <RenderWithThinking teks={teks} />
       </Suspense>
       {durasiDetik !== undefined && (
         <div className="text-xs text-neutral-500">
           Dijawab dalam {formatDurasi(durasiDetik)}
         </div>
       )}
-      {cukupPanjang && (
-        <button
-          onClick={onToggleExpand}
-          className="text-xs text-neutral-400 hover:text-neutral-300 hover:underline"
-        >
-          {expanded
-            ? "Tampilkan Lebih Sedikit"
-            : `Tampilkan Lebih Banyak (${panjang} karakter)`}
-        </button>
-      )}
+     
       <div className="flex gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
         {onCopy && (
           <TombolAksi judul="Salin" onClick={onCopy}>
@@ -657,7 +644,7 @@ export default function App() {
       window.clearTimeout(timer);
       ws.current?.close();
     };
-  }, [info]);
+  }, [info, kirimWs]);
 
   useEffect(() => {
     if (!sibuk) return;
@@ -833,9 +820,12 @@ export default function App() {
   }
 
   const kirimUlangRef = useRef(kirimUlang);
-  kirimUlangRef.current = kirimUlang;
   const regenerateRef = useRef(regenerateFromIndex);
-  regenerateRef.current = regenerateFromIndex;
+
+  useLayoutEffect(() => {
+    kirimUlangRef.current = kirimUlang;
+    regenerateRef.current = regenerateFromIndex;
+  });
 
   const onEditStabil = useCallback(
     (i: number, t: string) => kirimUlangRef.current(i, t),
@@ -1351,8 +1341,6 @@ const DaftarItem = memo(function DaftarItem({
               key={i}
               teks={m.teks}
               durasiDetik={m.durasiDetik}
-              expanded={expanded.has(i)}
-              onToggleExpand={() => onToggle(i)}
               onCopy={() => navigator.clipboard.writeText(m.teks)}
               onRegenerate={() => onRegenerate(i - 1)}
             />
