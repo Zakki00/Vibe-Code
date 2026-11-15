@@ -11,6 +11,48 @@ body,
     color-scheme: dark;
 }
 
+@keyframes loading-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+}
+
+@keyframes loading-track-travel {
+    0% { transform: translateX(-160%); }
+    100% { transform: translateX(260%); }
+}
+
+/* Animasi visual berjalan mandiri dengan siklus lambat 10 detik. */
+.loading-animation .loading-vite {
+    animation: loading-vite-pulse 10s ease-in-out infinite !important;
+}
+
+.loading-animation .loading-track {
+    position: relative;
+}
+
+.loading-animation .loading-progress {
+    animation: loading-track-travel 10s linear infinite !important;
+}
+
+.loading-animation .loading-robot svg g,
+.loading-animation .loading-robot svg rect {
+    animation-duration: 10s !important;
+    animation-timing-function: linear !important;
+}
+
+@keyframes loading-vite-pulse {
+    0%, 100% { opacity: 0.45; transform: scale(0.88); }
+    50% { opacity: 1; transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+    }
+}
+
 /* Tetap bisa digulir, tetapi scrollbar disembunyikan. */
 .scroll-tipis {
     scrollbar-width: thin;

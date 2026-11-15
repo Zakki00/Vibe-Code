@@ -493,6 +493,9 @@ export default function App() {
       const s = new WebSocket(`ws://${location.host}/ws`);
       ws.current = s;
       s.onopen = () => setTerhubung(true);
+      s.onerror = () => {
+        setTerhubung(false);
+      };
       s.onclose = () => {
         setTerhubung(false);
         setSibuk(false);
@@ -1064,6 +1067,26 @@ export default function App() {
         <div className="mx-auto w-full max-w-3xl space-y-4">
           {items.length === 0 && (
             <div className="pt-16 text-center text-neutral-500">
+              <div
+                className="loading-animation mb-5 flex items-center justify-center gap-5"
+                aria-label="Animasi Vibe App"
+              >
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10">
+                  <img
+                    src="/vite.svg"
+                    alt="Vite"
+                    className="loading-vite h-9 w-9 object-contain"
+                  />
+                </span>
+                <span className="loading-track h-1 w-12 overflow-hidden rounded-full bg-neutral-700">
+                  <span className="loading-progress block h-full w-1/2 rounded-full bg-[#DD7A5B]" />
+                </span>
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#DD7A5B]/15">
+                  <span className="loading-robot">
+                    <RobotPixel ukuran={42} sibuk />
+                  </span>
+                </span>
+              </div>
               Tanyakan sesuatu tentang proyek Anda, atau ketik / untuk melihat
               perintah.
             </div>

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawn, exec, execSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,6 +27,7 @@ async function tunggu(url, detik) {
   }
   return false;
 }
+
 
 function jalankanServer(nama, perintah, cwd, env = {}) {
   const p = spawn(perintah, {
@@ -65,22 +67,52 @@ if (!process.env.ANTHROPIC_AUTH_TOKEN) {
   );
 }
 
-if (await aktif(ALAMAT_ROUTER)) {
-  console.log("9Router sudah menyala.");
-} else {
-  console.log("Menyalakan 9Router di latar belakang...");
-  spawn("9router --tray --no-browser --skip-update", {
-    shell: true,
-    stdio: "ignore",
-    detached: true,
-    windowsHide: true,
-  }).unref();
-  if (!(await tunggu(ALAMAT_ROUTER, 30))) {
-    console.error(
-      "9Router tidak merespons. Coba nyalakan manual dengan perintah: 9router",
+try {
+  let routerSiap = await aktif(ALAMAT_ROUTER);
+  if (routerSiap) {
+    console.log("9Router sudah menyala.");
+  } else {
+    console.log("Menyalakan 9Router...");
+    // Jalankan entry point Node 9Router secara langsung, bukan wrapper .cmd
+    // yang dapat membuka terminal Windows.
+    const perintahRouter = execSync("where.exe 9router.cmd", {
+      encoding: "utf8",
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .split(/\r?\n/)
+      .find((baris) => baris.trim());
+    if (!perintahRouter) throw new Error("Tidak menemukan 9router.cmd di PATH.");
+    const cliRouter = path.join(
+      path.dirname(perintahRouter.trim()),
+      "node_modules",
+      "9router",
+      "cli.js",
     );
-    process.exit(1);
+    if (!fs.existsSync(cliRouter)) {
+      throw new Error(`Entry point 9Router tidak ditemukan: ${cliRouter}`);
+    }
+    const router = spawn(
+      process.execPath,
+      [cliRouter, "--tray", "--no-browser", "--skip-update"],
+      { stdio: "ignore", detached: true, windowsHide: true },
+    );
+    router.on("error", (error) => {
+      console.error(`Gagal menjalankan 9Router: ${error.message}`);
+    });
+    router.unref();
+
+    routerSiap = await tunggu(ALAMAT_ROUTER, 30);
+    if (!routerSiap) {
+      console.error(
+        "9Router tidak merespons. Coba nyalakan manual dengan perintah: 9router",
+      );
+      process.exit(1);
+    }
   }
+} catch (error) {
+  console.error(`Tidak dapat menyalakan 9Router: ${error.message}`);
+  process.exit(1);
 }
 
 console.log("Folder proyek: " + PROJECT_DIR);
