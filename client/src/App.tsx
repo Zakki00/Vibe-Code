@@ -1067,25 +1067,28 @@ export default function App() {
         <div className="mx-auto w-full max-w-3xl space-y-4">
           {items.length === 0 && (
             <div className="pt-16 text-center text-neutral-500">
-              <div
-                className="loading-animation mb-5 flex items-center justify-center gap-5"
-                aria-label="Animasi Vibe App"
-              >
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10">
-                  <img
-                    src="/vite.svg"
-                    alt="Vite"
-                    className="loading-vite h-9 w-9 object-contain"
-                  />
-                </span>
-                <span className="loading-track h-1 w-12 overflow-hidden rounded-full bg-neutral-700">
-                  <span className="loading-progress block h-full w-1/2 rounded-full bg-[#DD7A5B]" />
-                </span>
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#DD7A5B]/15">
-                  <span className="loading-robot">
-                    <RobotPixel ukuran={42} sibuk />
-                  </span>
-                </span>
+              <div className="loading-animation mb-5" aria-label="Animasi Vibe App">
+                <div className="loading-stage" aria-hidden="true">
+                  <div className="loading-unit loading-router">
+                    <span className="loading-frame"><span className="loading-frame-fill" /></span>
+                    <svg viewBox="0 0 48 48" fill="none">
+                      <g stroke="currentColor" strokeWidth="3.2" strokeLinecap="round">
+                        <path d="M24 24 13 13m11 11 11-11M24 24 13 35m11-11 11 11" />
+                        <path d="M24 24V9m0 15v15M24 24H9m15 0h15" opacity=".9" />
+                      </g>
+                      <g fill="currentColor"><circle cx="13" cy="13" r="5" /><circle cx="35" cy="13" r="5" /><circle cx="13" cy="35" r="5" /><circle cx="35" cy="35" r="5" /><circle cx="24" cy="24" r="5" /></g>
+                    </svg>
+                  </div>
+                  <div className="loading-unit loading-vite">
+                    <span className="loading-frame"><span className="loading-frame-fill" /></span>
+                    <img src="/vite.svg" alt="" />
+                  </div>
+                  <div className="loading-unit loading-claude">
+                    <span className="loading-frame"><span className="loading-frame-fill" /></span>
+                    <span className="loading-robot"><RobotPixel ukuran={42} sibuk /></span>
+                  </div>
+                </div>
+                <p className="loading-caption">Menghubungkan layanan...</p>
               </div>
               Tanyakan sesuatu tentang proyek Anda, atau ketik / untuk melihat
               perintah.

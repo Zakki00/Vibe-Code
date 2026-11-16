@@ -11,38 +11,112 @@ body,
     color-scheme: dark;
 }
 
-@keyframes loading-slide {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(200%); }
+/* Landing animation: edge-to-edge progress frames and three moving logos. */
+.loading-animation {
+    width: 100%;
+    color: #f4f4f5;
 }
-
-@keyframes loading-track-travel {
-    0% { transform: translateX(-160%); }
-    100% { transform: translateX(260%); }
-}
-
-/* Animasi visual berjalan mandiri dengan siklus lambat 10 detik. */
-.loading-animation .loading-vite {
-    animation: loading-vite-pulse 10s ease-in-out infinite !important;
-}
-
-.loading-animation .loading-track {
+.loading-stage {
+    --cycle: 10s;
     position: relative;
+    height: 126px;
+    max-width: 460px;
+    margin: 0 auto;
 }
-
-.loading-animation .loading-progress {
-    animation: loading-track-travel 10s linear infinite !important;
+.loading-unit {
+    position: absolute;
+    z-index: 2;
+    top: 19px;
+    left: 50%;
+    display: grid;
+    width: 62px;
+    height: 62px;
+    place-items: center;
+    transform: translateX(-50%);
+    animation-duration: var(--cycle);
+    animation-iteration-count: infinite;
+    animation-timing-function: cubic-bezier(.2,.8,.2,1);
 }
-
-.loading-animation .loading-robot svg g,
-.loading-animation .loading-robot svg rect {
-    animation-duration: 10s !important;
-    animation-timing-function: linear !important;
+.loading-unit > svg,
+.loading-unit > img,
+.loading-unit > .loading-robot { position: relative; z-index: 2; }
+.loading-router {
+    color: white;
+    border-radius: 17px;
+    background: linear-gradient(145deg,#f36d48,#ce4d30);
+    animation-name: loading-router-journey;
 }
-
-@keyframes loading-vite-pulse {
-    0%, 100% { opacity: 0.45; transform: scale(0.88); }
-    50% { opacity: 1; transform: scale(1.12); }
+.loading-router > svg { width: 36px; height: 36px; }
+.loading-vite {
+    z-index: 3;
+    border-radius: 17px;
+    background: #242329;
+    animation-name: loading-vite-breathe;
+}
+.loading-vite > img { width: 42px; height: 42px; object-fit: contain; }
+.loading-claude {
+    width: 70px;
+    height: 70px;
+    top: 15px;
+    animation-name: loading-claude-journey;
+}
+.loading-robot svg { width: 54px; height: auto; overflow: visible; }
+.loading-frame {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border: 2px solid #45454d;
+    border-radius: 19px;
+    background: #242329;
+    box-shadow: 0 8px 24px #0005;
+}
+.loading-router .loading-frame { border-radius: 18px; background: #532d27; }
+.loading-claude .loading-frame { border-radius: 18px; background: #302521; }
+.loading-frame-fill {
+    position: absolute;
+    inset: -2px;
+    border: 3px solid transparent;
+    border-radius: inherit;
+    background: conic-gradient(from 0deg, transparent 0 58%, #f6a184 70%, #dd7a5b 88%, transparent 100%) border-box;
+    -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: loading-frame-charge var(--cycle) linear infinite;
+}
+.loading-router .loading-frame-fill { animation-name: loading-frame-charge; }
+.loading-claude .loading-frame-fill { animation-name: loading-frame-charge-reverse; }
+.loading-caption { position: relative; z-index: 4; margin: 0; color: #73737d; font-size: 12px; }
+@keyframes loading-router-journey {
+    0%,10% { left:50%; transform:translateX(-50%) scale(.78); opacity:.72 }
+    28%,82% { left:14%; transform:translateX(-50%) scale(1); opacity:1 }
+    100% { left:50%; transform:translateX(-50%) scale(.78); opacity:.72 }
+}
+@keyframes loading-claude-journey {
+    0%,10% { left:50%; transform:translateX(-50%) scale(.78); opacity:.72 }
+    28%,82% { left:86%; transform:translateX(-50%) scale(1); opacity:1 }
+    100% { left:50%; transform:translateX(-50%) scale(.78); opacity:.72 }
+}
+@keyframes loading-vite-breathe {
+    0%,10%,100% { transform:translateX(-50%) scale(.86); filter:brightness(.8) }
+    28%,82% { transform:translateX(-50%) scale(1); filter:brightness(1.12) }
+}
+@keyframes loading-frame-charge {
+    0%,12% { transform:rotate(0deg); opacity:0 }
+    25% { opacity:1 }
+    80% { transform:rotate(360deg); opacity:1 }
+    90%,100% { transform:rotate(360deg); opacity:0 }
+}
+@keyframes loading-frame-charge-reverse {
+    0%,12% { transform:rotate(360deg); opacity:0 }
+    25% { opacity:1 }
+    80% { transform:rotate(0deg); opacity:1 }
+    90%,100% { transform:rotate(0deg); opacity:0 }
+}
+@media (prefers-reduced-motion: reduce) {
+    .loading-unit, .loading-frame-fill { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
+@media (max-width: 480px) {
+    .loading-stage { transform: scale(.88); transform-origin: top center; margin-bottom: -12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
