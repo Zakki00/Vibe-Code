@@ -115,6 +115,12 @@ try {
   process.exit(1);
 }
 
+// Start the frontend before waiting on the backend/router so the in-app
+// loading animation can render immediately during startup.
+jalankanServer("tampilan", "npm run dev", path.join(APP_DIR, "client"));
+const tampilanSiap = await tunggu(ALAMAT_TAMPILAN, 20);
+if (tampilanSiap) exec(`start msedge --app=${ALAMAT_TAMPILAN}`);
+
 console.log("Folder proyek: " + PROJECT_DIR);
 jalankanServer("backend", "node server.mjs", APP_DIR, {
   VIBE_PROJECT_DIR: PROJECT_DIR,
@@ -125,10 +131,5 @@ if (!(await tunggu(ALAMAT, 20))) {
   console.error("Backend tidak merespons. Periksa pesan error di atas.");
 }
 
-jalankanServer("tampilan", "npm run dev", path.join(APP_DIR, "client"));
-
-if (await tunggu(ALAMAT_TAMPILAN, 20)) {
-  exec(`start msedge --app=${ALAMAT_TAMPILAN}`);
-}
 console.log(`Tampilan: ${ALAMAT_TAMPILAN}  |  Backend: ${ALAMAT}`);
 console.log("Tekan Ctrl+C untuk menghentikan backend dan tampilan.");

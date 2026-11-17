@@ -435,6 +435,8 @@ export default function App() {
   const [projectPath, setProjectPath] = useState("");
   const [, setAplikasiSendiri] = useState(false);
   const [terhubung, setTerhubung] = useState(false);
+  const [animasiAwalSelesai, setAnimasiAwalSelesai] = useState(false);
+  const [statusSplash, setStatusSplash] = useState<"connecting" | "success" | "failure">("connecting");
   const [lampiran, setLampiran] = useState<Lampiran[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const izinkanSelaluRef = useRef<Set<string>>(new Set());
@@ -446,6 +448,32 @@ export default function App() {
   const mainRef = useRef<HTMLElement>(null);
   const dekatBawah = useRef(true);
   const mulaiResponsRef = useRef(0);
+  const timerAnimasiRef = useRef<number | undefined>(undefined);
+  const splashMulaiRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setAnimasiAwalSelesai(true);
+      return;
+    }
+    let frame = 0;
+    const tandaiSplashTampil = () => {
+      if (!document.querySelector(".loading-animation")) {
+        frame = window.requestAnimationFrame(tandaiSplashTampil);
+        return;
+      }
+      if (splashMulaiRef.current !== null) return;
+      splashMulaiRef.current = performance.now();
+      timerAnimasiRef.current = window.setTimeout(() => {
+        setAnimasiAwalSelesai(true);
+      }, 7_000);
+    };
+    frame = window.requestAnimationFrame(tandaiSplashTampil);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timerAnimasiRef.current);
+    };
+  }, []);
 
   const info = useCallback(
     (teks: string) => setItems((p) => [...p, { k: "info", teks }]),
@@ -492,12 +520,17 @@ export default function App() {
     function sambung() {
       const s = new WebSocket(`ws://${location.host}/ws`);
       ws.current = s;
-      s.onopen = () => setTerhubung(true);
+      s.onopen = () => {
+        setTerhubung(true);
+        if (!animasiAwalSelesai) setStatusSplash("connecting");
+      };
       s.onerror = () => {
         setTerhubung(false);
+        if (!animasiAwalSelesai) setStatusSplash("failure");
       };
       s.onclose = () => {
         setTerhubung(false);
+        if (!animasiAwalSelesai) setStatusSplash("failure");
         setSibuk(false);
         setIzin(null);
         if (!tutup) timer = window.setTimeout(sambung, 1500);
@@ -1065,9 +1098,12 @@ export default function App() {
         }}
       >
         <div className="mx-auto w-full max-w-3xl space-y-4">
-          {items.length === 0 && (
-            <div className="pt-16 text-center text-neutral-500">
-              <div className="loading-animation mb-5" aria-label="Animasi Vibe App">
+          {!terhubung || !animasiAwalSelesai ? (
+            <div className="pt-16 text-center text-neutral-500" aria-live="polite">
+              <div
+                className={`loading-animation loading-${statusSplash}`}
+                aria-label="Animasi Vibe App"
+              >
                 <div className="loading-stage" aria-hidden="true">
                   <div className="loading-unit loading-router">
                     <span className="loading-frame"><span className="loading-frame-fill" /></span>
@@ -1081,19 +1117,39 @@ export default function App() {
                   </div>
                   <div className="loading-unit loading-vite">
                     <span className="loading-frame"><span className="loading-frame-fill" /></span>
-                    <img src="/vite.svg" alt="" />
+                    <svg viewBox="0 0 256 257" aria-label="Vite" role="img">
+                      <defs>
+                        <linearGradient id="loading-vite-gradient" x1="0" x2="1" y1="0" y2="1">
+                          <stop offset="0" stopColor="#41d1ff" />
+                          <stop offset="1" stopColor="#bd34fe" />
+                        </linearGradient>
+                      </defs>
+                      <path fill="url(#loading-vite-gradient)" d="M255 38 136 252c-2 4-8 4-10 0L1 38c-3-5 1-11 7-10l119 21c1 0 2 0 3 0l119-21c6-1 10 5 6 10Z" />
+                      <path fill="#ffdd35" d="m185 1-88 17c-2 0-3 2-4 4L87 112c0 3 3 5 6 4l25-8c3-1 6 2 5 5l-8 39c-1 3 3 6 6 4l15-9c3-2 7 1 6 5l-13 63c-1 4 4 6 6 3l2-3 81-161c2-3-1-7-5-6l-26 5c-3 1-6-2-5-5l9-41c1-3-2-6-5-5Z" />
+                    </svg>
                   </div>
                   <div className="loading-unit loading-claude">
                     <span className="loading-frame"><span className="loading-frame-fill" /></span>
                     <span className="loading-robot"><RobotPixel ukuran={42} sibuk /></span>
                   </div>
+                  <div className="loading-bridge loading-bridge-left"><span /></div>
+                  <div className="loading-bridge loading-bridge-right"><span /></div>
                 </div>
-                <p className="loading-caption">Menghubungkan layanan...</p>
+                <p className={`loading-caption loading-caption-${statusSplash}`} aria-live="polite">
+                  {statusSplash === "success"
+                    ? "Claude Code dan 9Router terhubung"
+                    : statusSplash === "failure"
+                      ? "Koneksi gagal · mencoba kembali ke 9Router..."
+                      : "Menghubungkan Claude Code dan 9Router..."}
+                </p>
               </div>
+            </div>
+          ) : items.length === 0 ? (
+            <div className="pt-16 text-center text-neutral-500">
               Tanyakan sesuatu tentang proyek Anda, atau ketik / untuk melihat
               perintah.
             </div>
-          )}
+          ) : null}
           <DaftarItem
             items={items}
             expanded={expandedMessages}

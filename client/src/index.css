@@ -13,14 +13,24 @@ body,
 
 /* Landing animation: edge-to-edge progress frames and three moving logos. */
 .loading-animation {
+    position: fixed;
+    z-index: 50;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     width: 100%;
+    margin: 0 !important;
+    background: #171717;
     color: #f4f4f5;
 }
+.loading-animation > div { padding-top: 0 !important; }
 .loading-stage {
-    --cycle: 10s;
+    --cycle: 7s;
     position: relative;
+    width: min(460px, calc(100vw - 40px));
     height: 126px;
-    max-width: 460px;
     margin: 0 auto;
 }
 .loading-unit {
@@ -38,8 +48,21 @@ body,
     animation-timing-function: cubic-bezier(.2,.8,.2,1);
 }
 .loading-unit > svg,
-.loading-unit > img,
-.loading-unit > .loading-robot { position: relative; z-index: 2; }
+.loading-unit > img { position: relative; z-index: 2; }
+.loading-unit > .loading-robot {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    width: 54px;
+    height: 54px;
+    place-items: center;
+}
+.loading-unit > .loading-robot > svg {
+    display: block;
+    width: 54px;
+    height: 44px;
+    overflow: visible;
+}
 .loading-router {
     color: white;
     border-radius: 17px;
@@ -47,12 +70,15 @@ body,
     animation-name: loading-router-journey;
 }
 .loading-router > svg { width: 36px; height: 36px; }
+.loading-success .loading-router { background: linear-gradient(145deg,#22c55e,#15803d); }
+.loading-failure .loading-router { background: linear-gradient(145deg,#fb7185,#be123c); }
 .loading-vite {
     z-index: 3;
     border-radius: 17px;
     background: #242329;
     animation-name: loading-vite-breathe;
 }
+.loading-vite > svg,
 .loading-vite > img { width: 42px; height: 42px; object-fit: contain; }
 .loading-claude {
     width: 70px;
@@ -60,32 +86,74 @@ body,
     top: 15px;
     animation-name: loading-claude-journey;
 }
-.loading-robot svg { width: 54px; height: auto; overflow: visible; }
 .loading-frame {
     position: absolute;
     inset: 0;
     overflow: hidden;
-    border: 2px solid #45454d;
+    border: 1px solid #45454d;
     border-radius: 19px;
     background: #242329;
     box-shadow: 0 8px 24px #0005;
 }
 .loading-router .loading-frame { border-radius: 18px; background: #532d27; }
 .loading-claude .loading-frame { border-radius: 18px; background: #302521; }
+.loading-bridge {
+    position: absolute;
+    z-index: 1;
+    top: 46px;
+    width: calc(36% - 20px);
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #3f3f46;
+    opacity: 0;
+    animation:
+        loading-bridge-show var(--cycle) linear infinite,
+        loading-bridge-release var(--cycle) cubic-bezier(.2,.7,.3,1) infinite;
+}
+.loading-bridge-left { left: 14%; --loading-bridge-dir: -1; transform-origin: left center; }
+.loading-bridge-right { right: 14%; --loading-bridge-dir: 1; transform-origin: right center; }
+.loading-bridge span {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: #dd7a5b;
+    box-shadow: 0 0 12px #dd7a5b99;
+    transform: scaleX(0);
+    animation: loading-bridge-progress var(--cycle) ease-in-out infinite;
+}
+.loading-bridge-left span { transform-origin: left center; }
+.loading-bridge-right span { transform-origin: right center; }
 .loading-frame-fill {
     position: absolute;
     inset: -2px;
-    border: 3px solid transparent;
+    padding: 3px;
     border-radius: inherit;
-    background: conic-gradient(from 0deg, transparent 0 58%, #f6a184 70%, #dd7a5b 88%, transparent 100%) border-box;
-    -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+    background:
+        conic-gradient(from var(--loading-frame-origin), var(--loading-ring-color, #dd7a5b) 0deg var(--loading-frame-progress), transparent var(--loading-frame-progress) 360deg),
+        conic-gradient(from var(--loading-frame-origin), transparent 0deg calc(360deg - var(--loading-frame-progress)), var(--loading-ring-color, #dd7a5b) calc(360deg - var(--loading-frame-progress)) 360deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
+    filter: drop-shadow(0 0 5px #dd7a5b66);
+    --loading-frame-origin: 0deg;
+    --loading-frame-progress: 0deg;
     animation: loading-frame-charge var(--cycle) linear infinite;
+}
+.loading-router .loading-frame-fill { --loading-frame-origin: 270deg; }
+.loading-claude .loading-frame-fill { --loading-frame-origin: 90deg; }
+@property --loading-frame-progress {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
 }
 .loading-router .loading-frame-fill { animation-name: loading-frame-charge; }
 .loading-claude .loading-frame-fill { animation-name: loading-frame-charge-reverse; }
-.loading-caption { position: relative; z-index: 4; margin: 0; color: #73737d; font-size: 12px; }
+.loading-caption { position: relative; z-index: 4; margin: 0; color: #a1a1aa; font-size: 12px; transition: color .25s ease; }
+.loading-caption-success { color: #4ade80; }
+.loading-caption-failure { color: #fb7185; }
+.loading-animation.loading-success { --loading-ring-color: #4ade80; }
+.loading-animation.loading-failure { --loading-ring-color: #fb7185; }
 @keyframes loading-router-journey {
     0%,10% { left:50%; transform:translateX(-50%) scale(.78); opacity:.72 }
     28%,82% { left:14%; transform:translateX(-50%) scale(1); opacity:1 }
@@ -101,22 +169,38 @@ body,
     28%,82% { transform:translateX(-50%) scale(1); filter:brightness(1.12) }
 }
 @keyframes loading-frame-charge {
-    0%,12% { transform:rotate(0deg); opacity:0 }
-    25% { opacity:1 }
-    80% { transform:rotate(360deg); opacity:1 }
-    90%,100% { transform:rotate(360deg); opacity:0 }
+    0%,5% { --loading-frame-progress:0deg; opacity:0 }
+    23% { --loading-frame-progress:180deg; opacity:1 }
+    26%,85% { --loading-frame-progress:180deg; opacity:1 }
+    94%,100% { --loading-frame-progress:0deg; opacity:0 }
 }
 @keyframes loading-frame-charge-reverse {
-    0%,12% { transform:rotate(360deg); opacity:0 }
-    25% { opacity:1 }
-    80% { transform:rotate(0deg); opacity:1 }
-    90%,100% { transform:rotate(0deg); opacity:0 }
+    0%,5% { --loading-frame-progress:0deg; opacity:0 }
+    23% { --loading-frame-progress:180deg; opacity:1 }
+    26%,85% { --loading-frame-progress:180deg; opacity:1 }
+    94%,100% { --loading-frame-progress:0deg; opacity:0 }
+}
+@keyframes loading-bridge-show {
+    0%,43% { opacity:0 }
+    46%,86% { opacity:1 }
+    90%,100% { opacity:0 }
+}
+@keyframes loading-bridge-release {
+    0%,86% { filter:brightness(1) drop-shadow(0 0 0 transparent); transform:translateX(0) scale(1,1); }
+    87% { filter:brightness(3) drop-shadow(0 0 8px #dd7a5b); transform:translateX(calc(var(--loading-bridge-dir) * 6px)) scale(.9,1.5); }
+    89.5%,100% { filter:brightness(1.2) drop-shadow(0 0 0 transparent); transform:translateX(calc(var(--loading-bridge-dir) * 40px)) scale(.05,.1); }
+}
+@keyframes loading-bridge-progress {
+    0%,45% { transform:scaleX(0); }
+    64%,95% { transform:scaleX(1); }
+    100% { transform:scaleX(0); }
 }
 @media (prefers-reduced-motion: reduce) {
-    .loading-unit, .loading-frame-fill { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    .loading-unit, .loading-frame-fill, .loading-bridge, .loading-bridge span { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    .loading-bridge { opacity: 1; }
 }
 @media (max-width: 480px) {
-    .loading-stage { transform: scale(.88); transform-origin: top center; margin-bottom: -12px; }
+    .loading-stage { transform: scale(.88); transform-origin: center center; margin-bottom: -12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
