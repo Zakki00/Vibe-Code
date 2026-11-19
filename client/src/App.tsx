@@ -327,10 +327,36 @@ function PesanUser({
                     onClick={() => item.url && setViewerGambar({ url: item.url, nama: item.nama })}
                     title="Klik untuk memperbesar"
                   />
+                ) : item.url && (item.tipe === "application/pdf" || item.nama.endsWith(".pdf")) ? (
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md bg-neutral-600 px-2 py-0.5 text-xs hover:bg-neutral-500"
+                    title="Buka PDF"
+                  >
+                    📄 {item.nama}
+                  </a>
+                ) : item.url && (item.tipe?.startsWith("text/") || item.nama.match(/\.(md|txt|json|js|ts|jsx|tsx|py|rs|go|java|c|cpp|html|css|scss|yml|yaml|xml|sql|sh|bat|ps1)$/i)) ? (
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md bg-neutral-600 px-2 py-0.5 text-xs hover:bg-neutral-500"
+                    title="Buka file teks"
+                  >
+                    📝 {item.nama}
+                  </a>
                 ) : (
-                  <span className="rounded-md bg-neutral-600 px-2 py-0.5 text-xs">
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md bg-neutral-600 px-2 py-0.5 text-xs hover:bg-neutral-500"
+                    title="Unduh file"
+                  >
                     📎 {item.nama}
-                  </span>
+                  </a>
                 )}
               </span>
             ))}
@@ -1278,7 +1304,7 @@ export default function App() {
                 key={i}
                 className="flex items-center gap-2 rounded-lg bg-neutral-800 py-1 pl-2 pr-1 text-xs"
               >
-                {l.pratinjau ? (
+                {l.pratinjau && l.tipe?.startsWith("image/") ? (
                   <img
                     src={l.pratinjau}
                     alt={l.nama}
@@ -1286,8 +1312,12 @@ export default function App() {
                     onClick={() => setViewerGambar({ url: l.pratinjau as string, nama: l.nama })}
                     title="Klik untuk memperbesar"
                   />
+                ) : l.tipe === "application/pdf" || l.nama.endsWith(".pdf") ? (
+                  <span className="text-blue-400" title="PDF">📄</span>
+                ) : l.tipe?.startsWith("text/") || l.nama.match(/\.(md|txt|json|js|ts|jsx|tsx|py|rs|go|java|c|cpp|html|css|scss|yml|yaml|xml|sql|sh|bat|ps1)$/i) ? (
+                  <span className="text-green-400" title="File teks">📝</span>
                 ) : (
-                  <span>📄</span>
+                  <span className="text-neutral-400" title="File">📎</span>
                 )}
                 <span className="max-w-40 truncate">{l.nama}</span>
                 <button
