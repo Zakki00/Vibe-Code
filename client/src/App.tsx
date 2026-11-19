@@ -11,6 +11,7 @@ import {
 
 import type { KeyboardEvent, ReactNode } from "react";
 import RobotPixel from "./RobotPixel";
+import LoadingAnimasi from "./LoadingAnimasi";
 
 const RenderWithThinking = lazy(() => import("./MarkdownRenderer"));
 
@@ -435,10 +436,13 @@ export default function App() {
   const [projectPath, setProjectPath] = useState("");
   const [, setAplikasiSendiri] = useState(false);
   const [terhubung, setTerhubung] = useState(false);
-  const [animasiAwalSelesai, setAnimasiAwalSelesai] = useState(false);
-  const [statusSplash, setStatusSplash] = useState<"connecting" | "success" | "failure">("connecting");
+  // Pengguna yang memilih mengurangi gerakan langsung melewati animasi pembuka.
+  const [animasiAwalSelesai, setAnimasiAwalSelesai] = useState(
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
   const [lampiran, setLampiran] = useState<Lampiran[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const [viewerGambar, setViewerGambar] = useState<{ url: string; nama: string } | null>(null);
   const izinkanSelaluRef = useRef<Set<string>>(new Set());
   const ws = useRef<WebSocket | null>(null);
   const bawah = useRef<HTMLDivElement>(null);
@@ -448,32 +452,6 @@ export default function App() {
   const mainRef = useRef<HTMLElement>(null);
   const dekatBawah = useRef(true);
   const mulaiResponsRef = useRef(0);
-  const timerAnimasiRef = useRef<number | undefined>(undefined);
-  const splashMulaiRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setAnimasiAwalSelesai(true);
-      return;
-    }
-    let frame = 0;
-    const tandaiSplashTampil = () => {
-      if (!document.querySelector(".loading-animation")) {
-        frame = window.requestAnimationFrame(tandaiSplashTampil);
-        return;
-      }
-      if (splashMulaiRef.current !== null) return;
-      splashMulaiRef.current = performance.now();
-      timerAnimasiRef.current = window.setTimeout(() => {
-        setAnimasiAwalSelesai(true);
-      }, 7_000);
-    };
-    frame = window.requestAnimationFrame(tandaiSplashTampil);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(timerAnimasiRef.current);
-    };
-  }, []);
 
   const info = useCallback(
     (teks: string) => setItems((p) => [...p, { k: "info", teks }]),
@@ -522,15 +500,12 @@ export default function App() {
       ws.current = s;
       s.onopen = () => {
         setTerhubung(true);
-        if (!animasiAwalSelesai) setStatusSplash("connecting");
       };
       s.onerror = () => {
         setTerhubung(false);
-        if (!animasiAwalSelesai) setStatusSplash("failure");
       };
       s.onclose = () => {
         setTerhubung(false);
-        if (!animasiAwalSelesai) setStatusSplash("failure");
         setSibuk(false);
         setIzin(null);
         if (!tutup) timer = window.setTimeout(sambung, 1500);
@@ -1099,51 +1074,10 @@ export default function App() {
       >
         <div className="mx-auto w-full max-w-3xl space-y-4">
           {!terhubung || !animasiAwalSelesai ? (
-            <div className="pt-16 text-center text-neutral-500" aria-live="polite">
-              <div
-                className={`loading-animation loading-${statusSplash}`}
-                aria-label="Animasi Vibe App"
-              >
-                <div className="loading-stage" aria-hidden="true">
-                  <div className="loading-unit loading-router">
-                    <span className="loading-frame"><span className="loading-frame-fill" /></span>
-                    <svg viewBox="0 0 48 48" fill="none">
-                      <g stroke="currentColor" strokeWidth="3.2" strokeLinecap="round">
-                        <path d="M24 24 13 13m11 11 11-11M24 24 13 35m11-11 11 11" />
-                        <path d="M24 24V9m0 15v15M24 24H9m15 0h15" opacity=".9" />
-                      </g>
-                      <g fill="currentColor"><circle cx="13" cy="13" r="5" /><circle cx="35" cy="13" r="5" /><circle cx="13" cy="35" r="5" /><circle cx="35" cy="35" r="5" /><circle cx="24" cy="24" r="5" /></g>
-                    </svg>
-                  </div>
-                  <div className="loading-unit loading-vite">
-                    <span className="loading-frame"><span className="loading-frame-fill" /></span>
-                    <svg viewBox="0 0 256 257" aria-label="Vite" role="img">
-                      <defs>
-                        <linearGradient id="loading-vite-gradient" x1="0" x2="1" y1="0" y2="1">
-                          <stop offset="0" stopColor="#41d1ff" />
-                          <stop offset="1" stopColor="#bd34fe" />
-                        </linearGradient>
-                      </defs>
-                      <path fill="url(#loading-vite-gradient)" d="M255 38 136 252c-2 4-8 4-10 0L1 38c-3-5 1-11 7-10l119 21c1 0 2 0 3 0l119-21c6-1 10 5 6 10Z" />
-                      <path fill="#ffdd35" d="m185 1-88 17c-2 0-3 2-4 4L87 112c0 3 3 5 6 4l25-8c3-1 6 2 5 5l-8 39c-1 3 3 6 6 4l15-9c3-2 7 1 6 5l-13 63c-1 4 4 6 6 3l2-3 81-161c2-3-1-7-5-6l-26 5c-3 1-6-2-5-5l9-41c1-3-2-6-5-5Z" />
-                    </svg>
-                  </div>
-                  <div className="loading-unit loading-claude">
-                    <span className="loading-frame"><span className="loading-frame-fill" /></span>
-                    <span className="loading-robot"><RobotPixel ukuran={42} sibuk /></span>
-                  </div>
-                  <div className="loading-bridge loading-bridge-left"><span /></div>
-                  <div className="loading-bridge loading-bridge-right"><span /></div>
-                </div>
-                <p className={`loading-caption loading-caption-${statusSplash}`} aria-live="polite">
-                  {statusSplash === "success"
-                    ? "Claude Code dan 9Router terhubung"
-                    : statusSplash === "failure"
-                      ? "Koneksi gagal · mencoba kembali ke 9Router..."
-                      : "Menghubungkan Claude Code dan 9Router..."}
-                </p>
-              </div>
-            </div>
+            <LoadingAnimasi
+              terhubung={terhubung}
+              onSelesai={() => setAnimasiAwalSelesai(true)}
+            />
           ) : items.length === 0 ? (
             <div className="pt-16 text-center text-neutral-500">
               Tanyakan sesuatu tentang proyek Anda, atau ketik / untuk melihat
@@ -1204,6 +1138,34 @@ export default function App() {
           <div ref={bawah} />
         </div>
       </main>
+
+      {viewerGambar && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+          onClick={() => setViewerGambar(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Pratinjau gambar: ${viewerGambar.nama}`}
+        >
+          <button
+            onClick={() => setViewerGambar(null)}
+            className="absolute top-4 right-4 z-10 rounded-full bg-neutral-800/80 p-2 text-neutral-200 backdrop-blur-sm hover:bg-neutral-700 transition-colors"
+            aria-label="Tutup pratinjau"
+          >
+            ✕
+          </button>
+          <div className="relative max-w-[90vw] max-h-[90vh] p-2">
+            <img
+              src={viewerGambar.url}
+              alt={viewerGambar.nama}
+              className="max-w-full max-h-[90vh] object-contain"
+            />
+            <div className="mt-2 text-center text-sm text-neutral-300">
+              {viewerGambar.nama}
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="relative border-t border-neutral-800 p-3">
         {pilihModel !== null && (
@@ -1300,8 +1262,10 @@ export default function App() {
                 {l.pratinjau ? (
                   <img
                     src={l.pratinjau}
-                    alt=""
-                    className="h-8 w-8 rounded object-cover"
+                    alt={l.nama}
+                    className="h-8 w-8 rounded object-cover cursor-zoom-in hover:opacity-80 transition-opacity"
+                    onClick={() => setViewerGambar({ url: l.pratinjau as string, nama: l.nama })}
+                    title="Klik untuk memperbesar"
                   />
                 ) : (
                   <span>📄</span>
