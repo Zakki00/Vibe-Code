@@ -1019,7 +1019,7 @@ export default function App() {
       <header className="flex items-center gap-3 border-b border-neutral-800 px-4 py-3">
         <span className="text-base font-semibold tracking-tight flex items-center gap-2">
           <RobotPixel ukuran={26} sibuk={sibuk} />
-          Claude Code
+          Vibe Code
         </span>
         <span
           className="min-w-0 flex-1 truncate font-mono text-xs text-neutral-500"
