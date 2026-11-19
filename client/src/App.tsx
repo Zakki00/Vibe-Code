@@ -1242,7 +1242,7 @@ export default function App() {
           </div>
         )}
         {saran.length > 0 && (
-          <div className="cmd-dropdown" role="listbox" aria-label="Pilih perintah" style={{ left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: "800px" }}>
+          <div className="cmd-dropdown absolute inset-x-3 bottom-full mx-auto mb-2 max-w-3xl" role="listbox" aria-label="Pilih perintah">
             {saran.map((p, i) => (
               <button
                 key={p.nama}
