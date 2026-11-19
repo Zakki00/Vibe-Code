@@ -22,8 +22,9 @@ type Lampiran = {
   data: string;
   pratinjau?: string;
 };
+type LampiranItem = { nama: string; tipe?: string; url?: string; data?: string; pratinjau?: string };
 type Item =
-  | { k: "saya"; teks: string; lampiran?: string[] }
+  | { k: "saya"; teks: string; lampiran?: LampiranItem[] }
   | { k: "ai"; teks: string; durasiDetik?: number }
   | { k: "info"; teks: string }
   | {
@@ -254,14 +255,16 @@ function PesanUser({
   onEdit,
   onCopy,
   onRegenerate,
+  setViewerGambar,
 }: {
   teks: string;
-  lampiran?: string[];
+  lampiran?: LampiranItem[];
   expanded: boolean;
   onToggleExpand: () => void;
   onEdit?: (teksBaru: string) => void;
   onCopy?: () => void;
   onRegenerate?: () => void;
+  setViewerGambar: (val: { url: string; nama: string } | null) => void;
 }) {
   const [mengedit, setMengedit] = useState(false);
   const [tersalin, setTersalin] = useState(false);
@@ -314,12 +317,21 @@ function PesanUser({
       <div className="max-w-[85%] space-y-2 rounded-2xl bg-neutral-700 px-4 py-2">
         {lampiran && lampiran.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {lampiran.map((n, j) => (
-              <span
-                key={j}
-                className="rounded-md bg-neutral-600 px-2 py-0.5 text-xs"
-              >
-                📎 {n}
+            {lampiran.map((item, j) => (
+              <span key={j}>
+                {item.url && item.tipe?.startsWith("image/") ? (
+                  <img
+                    src={item.url}
+                    alt={item.nama}
+                    className="h-8 w-8 rounded object-cover cursor-zoom-in hover:opacity-80 transition-opacity"
+                    onClick={() => item.url && setViewerGambar({ url: item.url, nama: item.nama })}
+                    title="Klik untuk memperbesar"
+                  />
+                ) : (
+                  <span className="rounded-md bg-neutral-600 px-2 py-0.5 text-xs">
+                    📎 {item.nama}
+                  </span>
+                )}
               </span>
             ))}
           </div>
@@ -758,9 +770,15 @@ export default function App() {
       perintah(teks);
       return;
     }
+    // Kirim full attachment objects (with url) to preserve thumbnails in history
+    const lampiranUntukHistory = lampiran.map((l) => ({
+      nama: l.nama,
+      tipe: l.tipe,
+      url: l.pratinjau, // Use data URL for pending/preview, will be replaced by server URL on response
+    }));
     setItems((p) => [
       ...p,
-      { k: "saya", teks, lampiran: lampiran.map((l) => l.nama) },
+      { k: "saya", teks, lampiran: lampiranUntukHistory },
     ]);
     kirimWs({
       prompt: teks,
@@ -1090,6 +1108,7 @@ export default function App() {
             onToggle={onToggleStabil}
             onEdit={onEditStabil}
             onRegenerate={onRegenerateStabil}
+            setViewerGambar={setViewerGambar}
           />
 
           {izin && (
@@ -1358,12 +1377,14 @@ const DaftarItem = memo(function DaftarItem({
   onToggle,
   onEdit,
   onRegenerate,
+  setViewerGambar,
 }: {
   items: Item[];
   expanded: Set<number>;
   onToggle: (i: number) => void;
   onEdit: (i: number, teksBaru: string) => void;
   onRegenerate: (i: number) => void;
+  setViewerGambar: (val: { url: string; nama: string } | null) => void;
 }) {
   return (
     <>
@@ -1379,6 +1400,7 @@ const DaftarItem = memo(function DaftarItem({
               onEdit={(t) => onEdit(i, t)}
               onCopy={() => navigator.clipboard.writeText(m.teks)}
               onRegenerate={() => onRegenerate(i)}
+              setViewerGambar={setViewerGambar}
             />
           );
         if (m.k === "ai")

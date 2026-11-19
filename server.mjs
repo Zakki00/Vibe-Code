@@ -152,10 +152,12 @@ async function simpanLampiran(daftar) {
     const buf = Buffer.from(l.data, "base64");
     if (buf.length === 0 || buf.length > MAKS_BYTE) continue;
     const aman = path.basename(l.nama).replace(/[^\w.\- ]/g, "_").slice(0, 80) || "berkas";
-    const jalur = path.join(folder, `${Date.now()}-${aman}`);
+    const namaFile = `${Date.now()}-${aman}`;
+    const jalur = path.join(folder, namaFile);
     await fs.writeFile(jalur, buf);
-    if (TIPE_GAMBAR.has(l.tipe)) gambar.push({ nama: aman, tipe: l.tipe, data: l.data });
-    else berkas.push({ nama: aman, path: jalur });
+    const url = `/uploads/${namaFile}`;
+    if (TIPE_GAMBAR.has(l.tipe)) gambar.push({ nama: aman, tipe: l.tipe, data: l.data, url });
+    else berkas.push({ nama: aman, path: jalur, url });
   }
   return { gambar, berkas };
 }
@@ -222,6 +224,8 @@ function originAman(origin) {
 
 const app = express();
 app.use(express.static(path.join(APP_DIR, "client", "dist")));
+// Serve uploaded images so they can be viewed in chat history
+app.use("/uploads", express.static(path.join(folderVibe(), "uploads")));
 const server = http.createServer(app);
 const wss = new WebSocketServer({
   server,
@@ -381,7 +385,7 @@ wss.on("connection", (ws) => {
       riwayat.push({
         k: "saya",
         teks: prompt.trim(),
-        lampiran: [...gambar, ...berkas].map((l) => l.nama),
+        lampiran: [...gambar, ...berkas].map((l) => ({ nama: l.nama, tipe: l.tipe, url: l.url })),
       });
 
       for await (const msg of query({

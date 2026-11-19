@@ -8,9 +8,12 @@ type Ekspresi = "normal" | "kedip" | "senang" | "kerja";
 export default function RobotPixel({
   ukuran = 28,
   sibuk = false,
+  senang = false,
 }: {
   ukuran?: number;
   sibuk?: boolean;
+  /** Paksa wajah tersenyum (mata > < dan mulut) dengan satu kali goyang, tanpa reaksi acak. */
+  senang?: boolean;
 }) {
   const [ekspresi, setEkspresi] = useState<Ekspresi>("normal");
   const [arah, setArah] = useState(0); // arah pandang mata: -1, 0, 1
@@ -30,6 +33,20 @@ export default function RobotPixel({
       return id;
     };
     const acak = (a: number, b: number) => a + Math.random() * (b - a);
+    const bersihkan = () => {
+      hidup = false;
+      window.clearTimeout(timer);
+      timers.forEach((id) => window.clearTimeout(id));
+    };
+
+    // Mode senang: tersenyum terus dan goyang sekali, tanpa ekspresi acak.
+    if (senang) {
+      setArah(0);
+      setEkspresi("senang");
+      setGoyang(true);
+      tunda(() => setGoyang(false), 650);
+      return bersihkan;
+    }
 
     function langkah() {
       if (!hidup) return;
@@ -54,12 +71,8 @@ export default function RobotPixel({
 
     setEkspresi(sibuk ? "kerja" : "normal");
     timer = tunda(langkah, acak(900, 1800));
-    return () => {
-      hidup = false;
-      window.clearTimeout(timer);
-      timers.forEach((id) => window.clearTimeout(id));
-    };
-  }, [sibuk]);
+    return bersihkan;
+  }, [sibuk, senang]);
 
   return (
     <svg
@@ -139,6 +152,8 @@ export default function RobotPixel({
               <rect x="8" y="1" width="1" height="1" fill={MATA} />
               <rect x="7" y="2" width="1" height="1" fill={MATA} />
               <rect x="8" y="3" width="1" height="1" fill={MATA} />
+              {/* Mulut: hanya saat senang dipaksa (animasi loading berhasil) */}
+              {senang && <rect x="4" y="5" width="3" height="0.6" fill={MATA} />}
             </>
           )}
         </g>

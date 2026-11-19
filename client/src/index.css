@@ -11,7 +11,26 @@ body,
     color-scheme: dark;
 }
 
-/* Landing animation: edge-to-edge progress frames and three moving logos. */
+/* Animasi loading. Alurnya dikendalikan React lewat atribut data-fase pada .loading-animation:
+   - intro : logo ke sisi, ring dan garis progres (oranye) mengalir lalu menyatu mengelilingi logo tengah, lalu ditahan
+   - sukses: warna berubah hijau (Claude Code tersenyum di komponen), ditahan sebentar
+   - keluar: garis melepas, ring memudar, logo kembali ke tengah, lalu splash selesai
+   - gagal : merah, garis progres terus mencoba lagi, logo TIDAK kembali ke tengah (tidak pernah selesai) */
+@property --loading-frame-progress {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+@property --loading-ring-color {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: #dd7a5b;
+}
+@property --loading-ring-glow {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: #dd7a5b66;
+}
 .loading-animation {
     position: fixed;
     z-index: 50;
@@ -24,10 +43,17 @@ body,
     margin: 0 !important;
     background: #171717;
     color: #f4f4f5;
+    transition: --loading-ring-color .5s ease, --loading-ring-glow .5s ease;
 }
+.loading-animation[data-fase="sukses"],
+.loading-animation[data-fase="keluar"] { --loading-ring-color: #4ade80; --loading-ring-glow: #4ade8070; }
+.loading-animation[data-fase="gagal"] { --loading-ring-color: #fb7185; --loading-ring-glow: #fb718570; }
 .loading-animation > div { padding-top: 0 !important; }
 .loading-stage {
-    --cycle: 7s;
+    /* --loading-intro harus sama dengan INTRO_MS di LoadingAnimasi.tsx */
+    --loading-intro: 5.6s;
+    --loading-keluar: .9s;
+    --loading-retry: 2.6s;
     position: relative;
     width: min(460px, calc(100vw - 40px));
     height: 126px;
@@ -43,8 +69,10 @@ body,
     height: 62px;
     place-items: center;
     transform: translateX(-50%);
-    animation-duration: var(--cycle);
-    animation-iteration-count: infinite;
+    border-radius: 18px;
+    animation-duration: var(--loading-intro);
+    animation-iteration-count: 1;
+    animation-fill-mode: forwards;
     animation-timing-function: cubic-bezier(.2,.8,.2,1);
 }
 .loading-unit > svg,
@@ -63,20 +91,13 @@ body,
     height: 44px;
     overflow: visible;
 }
-.loading-router {
-    color: white;
-    border-radius: 17px;
-    background: linear-gradient(145deg,#f36d48,#ce4d30);
-    animation-name: loading-router-journey;
-}
+.loading-router { color: white; animation-name: loading-router-intro; }
 .loading-router > svg { width: 36px; height: 36px; }
-.loading-success .loading-router { background: linear-gradient(145deg,#22c55e,#15803d); }
-.loading-failure .loading-router { background: linear-gradient(145deg,#fb7185,#be123c); }
 .loading-vite {
     z-index: 3;
     border-radius: 17px;
     background: #242329;
-    animation-name: loading-vite-breathe;
+    animation-name: loading-vite-intro;
 }
 .loading-vite > svg,
 .loading-vite > img { width: 42px; height: 42px; object-fit: contain; }
@@ -84,32 +105,33 @@ body,
     width: 70px;
     height: 70px;
     top: 15px;
-    animation-name: loading-claude-journey;
+    animation-name: loading-claude-intro;
 }
+/* Bingkai TIDAK boleh overflow:hidden: ring cahaya (inset:-2px) ikut terpotong
+   dan hanya tersisa ~1px. Radius mengikuti .loading-unit supaya tidak ada celah di sudut. */
 .loading-frame {
     position: absolute;
     inset: 0;
-    overflow: hidden;
-    border: 1px solid #45454d;
-    border-radius: 19px;
+    border: 2px solid #45454d;
+    border-radius: inherit;
     background: #242329;
     box-shadow: 0 8px 24px #0005;
 }
-.loading-router .loading-frame { border-radius: 18px; background: #532d27; }
-.loading-claude .loading-frame { border-radius: 18px; background: #302521; }
+.loading-router .loading-frame { background: #532d27; }
+.loading-claude .loading-frame { background: #302521; }
+
+/* Garis progres antar logo. */
 .loading-bridge {
     position: absolute;
     z-index: 1;
-    top: 46px;
+    top: 48px; /* sejajar titik tengah logo (top 19px + 62px/2 = 50px; tinggi garis 4px) */
     width: calc(36% - 20px);
     height: 4px;
     overflow: hidden;
     border-radius: 999px;
     background: #3f3f46;
     opacity: 0;
-    animation:
-        loading-bridge-show var(--cycle) linear infinite,
-        loading-bridge-release var(--cycle) cubic-bezier(.2,.7,.3,1) infinite;
+    animation: loading-bridge-show var(--loading-intro) linear forwards;
 }
 .loading-bridge-left { left: 14%; --loading-bridge-dir: -1; transform-origin: left center; }
 .loading-bridge-right { right: 14%; --loading-bridge-dir: 1; transform-origin: right center; }
@@ -117,87 +139,148 @@ body,
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: #dd7a5b;
-    box-shadow: 0 0 12px #dd7a5b99;
+    background: var(--loading-ring-color, #dd7a5b);
+    box-shadow: 0 0 12px var(--loading-ring-glow, #dd7a5b99);
     transform: scaleX(0);
-    animation: loading-bridge-progress var(--cycle) ease-in-out infinite;
+    animation: loading-bridge-progress var(--loading-intro) ease-in-out forwards;
 }
 .loading-bridge-left span { transform-origin: left center; }
 .loading-bridge-right span { transform-origin: right center; }
-.loading-frame-fill {
+
+/* Ring cahaya bingkai: mulai dari sisi luar, terbelah ke atas dan ke bawah, bertemu di sisi tengah.
+   Vite punya DUA ring: .loading-frame-fill (aliran dari Claude, masuk dari kanan)
+   dan .loading-frame::after (aliran dari 9Router, masuk dari kiri). */
+.loading-frame-fill,
+.loading-vite .loading-frame::after {
     position: absolute;
     inset: -2px;
     padding: 3px;
     border-radius: inherit;
+    opacity: 0;
     background:
         conic-gradient(from var(--loading-frame-origin), var(--loading-ring-color, #dd7a5b) 0deg var(--loading-frame-progress), transparent var(--loading-frame-progress) 360deg),
         conic-gradient(from var(--loading-frame-origin), transparent 0deg calc(360deg - var(--loading-frame-progress)), var(--loading-ring-color, #dd7a5b) calc(360deg - var(--loading-frame-progress)) 360deg);
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
-    filter: drop-shadow(0 0 5px #dd7a5b66);
+    filter: drop-shadow(0 0 5px var(--loading-ring-glow, #dd7a5b66));
     --loading-frame-origin: 0deg;
     --loading-frame-progress: 0deg;
-    animation: loading-frame-charge var(--cycle) linear infinite;
+    animation: loading-frame-charge var(--loading-intro) linear forwards;
 }
-.loading-router .loading-frame-fill { --loading-frame-origin: 270deg; }
-.loading-claude .loading-frame-fill { --loading-frame-origin: 90deg; }
-@property --loading-frame-progress {
-    syntax: "<angle>";
-    inherits: false;
-    initial-value: 0deg;
-}
-.loading-router .loading-frame-fill { animation-name: loading-frame-charge; }
-.loading-claude .loading-frame-fill { animation-name: loading-frame-charge-reverse; }
+.loading-vite .loading-frame::after { content: ""; }
+.loading-router .loading-frame-fill { --loading-frame-origin: 270deg; } /* mulai dari sisi kiri (luar) */
+.loading-claude .loading-frame-fill { --loading-frame-origin: 90deg; }  /* mulai dari sisi kanan (luar) */
+.loading-vite .loading-frame-fill { --loading-frame-origin: 90deg; }    /* masuk dari kanan (aliran Claude) */
+.loading-vite .loading-frame::after { --loading-frame-origin: 270deg; } /* masuk dari kiri (aliran 9Router) */
+.loading-vite .loading-frame-fill,
+.loading-vite .loading-frame::after { animation-name: loading-vite-charge; }
+
 .loading-caption { position: relative; z-index: 4; margin: 0; color: #a1a1aa; font-size: 12px; transition: color .25s ease; }
-.loading-caption-success { color: #4ade80; }
-.loading-caption-failure { color: #fb7185; }
-.loading-animation.loading-success { --loading-ring-color: #4ade80; }
-.loading-animation.loading-failure { --loading-ring-color: #fb7185; }
-@keyframes loading-router-journey {
-    0%,10% { left:50%; transform:translateX(-50%) scale(.78); opacity:.72 }
-    28%,82% { left:14%; transform:translateX(-50%) scale(1); opacity:1 }
-    100% { left:50%; transform:translateX(-50%) scale(.78); opacity:.72 }
+.loading-animation[data-fase="sukses"] .loading-caption,
+.loading-animation[data-fase="keluar"] .loading-caption { color: #4ade80; }
+.loading-animation[data-fase="gagal"] .loading-caption { color: #fb7185; }
+
+/* ---------- Fase GAGAL: garis progres dan ring Vite terus mencoba lagi, logo tetap di sisi ---------- */
+.loading-animation[data-fase="gagal"] .loading-bridge span {
+    animation: loading-bridge-retry var(--loading-retry) ease-in-out infinite;
 }
-@keyframes loading-claude-journey {
-    0%,10% { left:50%; transform:translateX(-50%) scale(.78); opacity:.72 }
-    28%,82% { left:86%; transform:translateX(-50%) scale(1); opacity:1 }
-    100% { left:50%; transform:translateX(-50%) scale(.78); opacity:.72 }
+.loading-animation[data-fase="gagal"] .loading-vite .loading-frame-fill,
+.loading-animation[data-fase="gagal"] .loading-vite .loading-frame::after {
+    animation: loading-vite-retry var(--loading-retry) linear infinite;
 }
-@keyframes loading-vite-breathe {
-    0%,10%,100% { transform:translateX(-50%) scale(.86); filter:brightness(.8) }
-    28%,82% { transform:translateX(-50%) scale(1); filter:brightness(1.12) }
+
+/* ---------- Fase SUKSES dan KELUAR: tahan keadaan akhir intro (tanpa memutar ulang) ---------- */
+.loading-animation:is([data-fase="sukses"], [data-fase="keluar"]) .loading-bridge { animation: none; opacity: 1; }
+.loading-animation:is([data-fase="sukses"], [data-fase="keluar"]) .loading-bridge span { animation: none; transform: scaleX(1); }
+.loading-animation:is([data-fase="sukses"], [data-fase="keluar"]) .loading-frame-fill,
+.loading-animation:is([data-fase="sukses"], [data-fase="keluar"]) .loading-vite .loading-frame::after {
+    animation: none;
+    --loading-frame-progress: 180deg;
+    opacity: 1;
 }
+
+/* ---------- Fase KELUAR: garis melepas, ring memudar, lalu logo kembali ke tengah ---------- */
+.loading-animation[data-fase="keluar"] .loading-bridge {
+    animation: loading-bridge-release .45s cubic-bezier(.2,.7,.3,1) forwards;
+}
+.loading-animation[data-fase="keluar"] .loading-frame-fill,
+.loading-animation[data-fase="keluar"] .loading-vite .loading-frame::after {
+    animation: loading-ring-out .4s ease forwards;
+}
+.loading-animation[data-fase="keluar"] .loading-router { animation: loading-router-outro var(--loading-keluar) cubic-bezier(.2,.8,.2,1) .4s both; }
+.loading-animation[data-fase="keluar"] .loading-claude { animation: loading-claude-outro var(--loading-keluar) cubic-bezier(.2,.8,.2,1) .4s both; }
+.loading-animation[data-fase="keluar"] .loading-vite { animation: loading-vite-outro var(--loading-keluar) cubic-bezier(.2,.8,.2,1) .4s both; }
+
+/* ---------- Keyframes INTRO (sekali jalan, ditahan di akhir) ---------- */
+@keyframes loading-router-intro {
+    0%,12.5% { left:50%; transform:translateX(-50%) scale(.78); opacity:.72 }
+    35%,100% { left:14%; transform:translateX(-50%) scale(1); opacity:1 }
+}
+@keyframes loading-claude-intro {
+    0%,12.5% { left:50%; transform:translateX(-50%) scale(.78); opacity:.72 }
+    35%,100% { left:86%; transform:translateX(-50%) scale(1); opacity:1 }
+}
+@keyframes loading-vite-intro {
+    0%,12.5% { transform:translateX(-50%) scale(.86); filter:brightness(.8) }
+    35%,100% { transform:translateX(-50%) scale(1); filter:brightness(1.12) }
+}
+/* Logo kiri/kanan: ring menyala SETELAH logo tiba di posisinya (35%). */
 @keyframes loading-frame-charge {
-    0%,5% { --loading-frame-progress:0deg; opacity:0 }
-    23% { --loading-frame-progress:180deg; opacity:1 }
-    26%,85% { --loading-frame-progress:180deg; opacity:1 }
-    94%,100% { --loading-frame-progress:0deg; opacity:0 }
-}
-@keyframes loading-frame-charge-reverse {
-    0%,5% { --loading-frame-progress:0deg; opacity:0 }
-    23% { --loading-frame-progress:180deg; opacity:1 }
-    26%,85% { --loading-frame-progress:180deg; opacity:1 }
-    94%,100% { --loading-frame-progress:0deg; opacity:0 }
+    0%,36% { --loading-frame-progress:0deg; opacity:0 }
+    36.5% { --loading-frame-progress:0deg; opacity:1 }
+    55%,100% { --loading-frame-progress:180deg; opacity:1 }
 }
 @keyframes loading-bridge-show {
-    0%,43% { opacity:0 }
-    46%,86% { opacity:1 }
-    90%,100% { opacity:0 }
-}
-@keyframes loading-bridge-release {
-    0%,86% { filter:brightness(1) drop-shadow(0 0 0 transparent); transform:translateX(0) scale(1,1); }
-    87% { filter:brightness(3) drop-shadow(0 0 8px #dd7a5b); transform:translateX(calc(var(--loading-bridge-dir) * 6px)) scale(.9,1.5); }
-    89.5%,100% { filter:brightness(1.2) drop-shadow(0 0 0 transparent); transform:translateX(calc(var(--loading-bridge-dir) * 40px)) scale(.05,.1); }
+    0%,53.75% { opacity:0 }
+    57.5%,100% { opacity:1 }
 }
 @keyframes loading-bridge-progress {
-    0%,45% { transform:scaleX(0); }
-    64%,95% { transform:scaleX(1); }
-    100% { transform:scaleX(0); }
+    0%,56.25% { transform:scaleX(0) }
+    80%,100% { transform:scaleX(1) }
 }
-@media (prefers-reduced-motion: reduce) {
-    .loading-unit, .loading-frame-fill, .loading-bridge, .loading-bridge span { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
-    .loading-bridge { opacity: 1; }
+/* Vite: ring menyala setelah garis progres dari kedua sisi tiba (80%). */
+@keyframes loading-vite-charge {
+    0%,79.5% { --loading-frame-progress:0deg; opacity:0 }
+    80% { --loading-frame-progress:0deg; opacity:1 }
+    97.5%,100% { --loading-frame-progress:180deg; opacity:1 }
+}
+
+/* ---------- Keyframes GAGAL (berulang): garis ditarik balik, diisi lagi, ring Vite digambar ulang ---------- */
+@keyframes loading-bridge-retry {
+    0%,8% { transform:scaleX(1) }
+    14% { transform:scaleX(0) }
+    58%,100% { transform:scaleX(1) }
+}
+@keyframes loading-vite-retry {
+    0%,8% { --loading-frame-progress:180deg; opacity:1 }
+    14% { --loading-frame-progress:180deg; opacity:0 }
+    14.1%,58% { --loading-frame-progress:0deg; opacity:0 }
+    58.5% { --loading-frame-progress:0deg; opacity:1 }
+    76%,100% { --loading-frame-progress:180deg; opacity:1 }
+}
+
+/* ---------- Keyframes KELUAR ---------- */
+@keyframes loading-bridge-release {
+    0% { opacity:1; filter:brightness(1) drop-shadow(0 0 0 transparent); transform:translateX(0) scale(1,1); }
+    25% { opacity:1; filter:brightness(3) drop-shadow(0 0 8px var(--loading-ring-color, #dd7a5b)); transform:translateX(calc(var(--loading-bridge-dir) * 6px)) scale(.9,1.5); }
+    100% { opacity:0; filter:brightness(1.2) drop-shadow(0 0 0 transparent); transform:translateX(calc(var(--loading-bridge-dir) * 40px)) scale(.05,.1); }
+}
+@keyframes loading-ring-out {
+    from { opacity:1 }
+    to { opacity:0 }
+}
+@keyframes loading-router-outro {
+    from { left:14%; transform:translateX(-50%) scale(1); opacity:1 }
+    to { left:50%; transform:translateX(-50%) scale(.78); opacity:.72 }
+}
+@keyframes loading-claude-outro {
+    from { left:86%; transform:translateX(-50%) scale(1); opacity:1 }
+    to { left:50%; transform:translateX(-50%) scale(.78); opacity:.72 }
+}
+@keyframes loading-vite-outro {
+    from { transform:translateX(-50%) scale(1); filter:brightness(1.12) }
+    to { transform:translateX(-50%) scale(.86); filter:brightness(.8) }
 }
 @media (max-width: 480px) {
     .loading-stage { transform: scale(.88); transform-origin: center center; margin-bottom: -12px; }
