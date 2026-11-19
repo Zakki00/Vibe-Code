@@ -1242,24 +1242,21 @@ export default function App() {
           </div>
         )}
         {saran.length > 0 && (
-          <div className="absolute inset-x-3 bottom-full mx-auto mb-2 max-w-3xl overflow-hidden rounded-xl border border-neutral-700 bg-neutral-800 shadow-lg">
+          <div className="cmd-dropdown" role="listbox" aria-label="Pilih perintah">
             {saran.map((p, i) => (
               <button
                 key={p.nama}
+                role="option"
+                aria-selected={i === idxSaran}
                 onMouseEnter={() => setIdxSaran(i)}
                 onClick={() => {
                   setInput("");
                   perintah(p.nama);
                 }}
-                className={
-                  "flex w-full gap-3 px-4 py-2 text-left " +
-                  (i === idxSaran ? "bg-neutral-700" : "")
-                }
+                className={`cmd-dropdown-item ${i === idxSaran ? "selected" : ""}`}
               >
-                <span className="w-24 shrink-0 font-mono text-orange-400">
-                  {p.nama}
-                </span>
-                <span className="text-sm text-neutral-300">{p.ket}</span>
+                <span className="cmd-dropdown-kbd">{p.nama}</span>
+                <span className="cmd-dropdown-desc">{p.ket}</span>
               </button>
             ))}
           </div>
