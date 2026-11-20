@@ -200,17 +200,27 @@ body,
     opacity: 1;
 }
 
-/* ---------- Fase KELUAR: garis melepas, ring memudar, lalu logo kembali ke tengah ---------- */
+/* ---------- Fase KELUAR: logo kembali ke tengah dulu, lalu garis melepas dan ring memudar ---------- */
 .loading-animation[data-fase="keluar"] .loading-bridge {
-    animation: loading-bridge-release .45s cubic-bezier(.2,.7,.3,1) forwards;
+    animation: loading-bridge-release .45s cubic-bezier(.2, .7, .3, 1) .4s both;
 }
+
 .loading-animation[data-fase="keluar"] .loading-frame-fill,
 .loading-animation[data-fase="keluar"] .loading-vite .loading-frame::after {
-    animation: loading-ring-out .4s ease forwards;
+    animation: loading-ring-out .4s ease .4s both;
 }
-.loading-animation[data-fase="keluar"] .loading-router { animation: loading-router-outro var(--loading-keluar) cubic-bezier(.2,.8,.2,1) .4s both; }
-.loading-animation[data-fase="keluar"] .loading-claude { animation: loading-claude-outro var(--loading-keluar) cubic-bezier(.2,.8,.2,1) .4s both; }
-.loading-animation[data-fase="keluar"] .loading-vite { animation: loading-vite-outro var(--loading-keluar) cubic-bezier(.2,.8,.2,1) .4s both; }
+
+.loading-animation[data-fase="keluar"] .loading-router {
+    animation: loading-router-outro var(--loading-keluar) cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.loading-animation[data-fase="keluar"] .loading-claude {
+    animation: loading-claude-outro var(--loading-keluar) cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.loading-animation[data-fase="keluar"] .loading-vite {
+    animation: loading-vite-outro var(--loading-keluar) cubic-bezier(.2, .8, .2, 1) both;
+}
 
 /* ---------- Keyframes INTRO (sekali jalan, ditahan di akhir) ---------- */
 @keyframes loading-router-intro {
