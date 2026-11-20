@@ -82,6 +82,7 @@ const PERINTAH = [
     nama: "/memory",
     ket: "Info file CLAUDE.md (ingatan proyek) di folder ini",
   },
+  { nama: "/9router", ket: "Buka dashboard 9Router" },
 ];
 
 const MAKS_TINGGI_INPUT = 260; // sekitar 10 baris
@@ -771,6 +772,9 @@ export default function App() {
       case "/memory":
         kirimWs({ type: "command", command: "memory_info" });
         break;
+      case "/9router":
+        window.open("http://localhost:20128/dashboard", "_blank", "noopener,noreferrer");
+        break;
       case "/help":
         info(PERINTAH.map((p) => `${p.nama}  -  ${p.ket}`).join("\n"));
         break;
@@ -1019,7 +1023,7 @@ export default function App() {
       <header className="flex items-center gap-3 border-b border-neutral-800 px-4 py-3">
         <span className="text-base font-semibold tracking-tight flex items-center gap-2">
           <RobotPixel ukuran={26} sibuk={sibuk} />
-          Vibe Code
+          Claude Code
         </span>
         <span
           className="min-w-0 flex-1 truncate font-mono text-xs text-neutral-500"
