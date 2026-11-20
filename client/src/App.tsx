@@ -475,6 +475,7 @@ export default function App() {
   const [projectPath, setProjectPath] = useState("");
   const [, setAplikasiSendiri] = useState(false);
   const [terhubung, setTerhubung] = useState(false);
+  const [tampilanRouter, setTampilanRouter] = useState(false);
   // Pengguna yang memilih mengurangi gerakan langsung melewati animasi pembuka.
   const [animasiAwalSelesai, setAnimasiAwalSelesai] = useState(
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -773,7 +774,7 @@ export default function App() {
         kirimWs({ type: "command", command: "memory_info" });
         break;
       case "/9router":
-        window.open("http://localhost:20128/dashboard", "_blank", "noopener,noreferrer");
+        setTampilanRouter(true);
         break;
       case "/help":
         info(PERINTAH.map((p) => `${p.nama}  -  ${p.ket}`).join("\n"));
@@ -1034,6 +1035,24 @@ export default function App() {
           <RobotPixel ukuran={26} sibuk={sibuk} />
           Claude Code
         </span>
+        <div className="flex items-center gap-1 rounded-lg border border-neutral-700 bg-neutral-800 p-1">
+          <button
+            type="button"
+            onClick={() => setTampilanRouter(false)}
+            aria-pressed={!tampilanRouter}
+            className={"rounded-md px-3 py-1 text-xs transition-colors " + (!tampilanRouter ? "bg-neutral-600 text-white" : "text-neutral-400 hover:text-white")}
+          >
+            Vibe-App
+          </button>
+          <button
+            type="button"
+            onClick={() => setTampilanRouter(true)}
+            aria-pressed={tampilanRouter}
+            className={"rounded-md px-3 py-1 text-xs transition-colors " + (tampilanRouter ? "bg-neutral-600 text-white" : "text-neutral-400 hover:text-white")}
+          >
+            9Router
+          </button>
+        </div>
         <span
           className="min-w-0 flex-1 truncate font-mono text-xs text-neutral-500"
           title={projectPath}
@@ -1096,13 +1115,20 @@ export default function App() {
         />
       </header>
 
-      {!terhubung && (
+      {!terhubung && !tampilanRouter && (
         <div className="bg-red-950 px-4 py-1.5 text-sm text-red-200">
           Terputus dari server, mencoba menyambung kembali...
         </div>
       )}
 
-      <main
+      {tampilanRouter ? (
+        <iframe
+          title="Dashboard 9Router"
+          src="http://localhost:20128/dashboard"
+          className="h-full min-h-0 w-full flex-1 border-0 bg-white"
+          referrerPolicy="no-referrer"
+        />
+      ) : <main
         ref={mainRef}
         onScroll={(e) => {
           const el = e.currentTarget;
@@ -1195,7 +1221,7 @@ export default function App() {
           )}
           <div ref={bawah} />
         </div>
-      </main>
+      </main>}
 
       {viewerGambar && (
         <div
