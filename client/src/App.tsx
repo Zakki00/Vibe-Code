@@ -917,6 +917,15 @@ export default function App() {
   }
 
   // Penanganan umum untuk daftar yang bisa dipilih dengan panah.
+  const commandDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const selected = commandDropdownRef.current?.querySelector<HTMLElement>(
+      `[data-command-index="${idxSaran}"]`,
+    );
+    selected?.scrollIntoView({ block: "nearest" });
+  }, [idxSaran, saran.length]);
+
   function navigasi(
     e: KeyboardEvent<HTMLTextAreaElement>,
     n: number,
@@ -1246,9 +1255,10 @@ export default function App() {
           </div>
         )}
         {saran.length > 0 && (
-          <div className="cmd-dropdown absolute inset-x-3 bottom-full mx-auto mb-2 max-w-3xl" role="listbox" aria-label="Pilih perintah">
+          <div ref={commandDropdownRef} className="cmd-dropdown absolute inset-x-3 bottom-full mx-auto mb-2 max-w-3xl" role="listbox" aria-label="Pilih perintah">
             {saran.map((p, i) => (
               <button
+                data-command-index={i}
                 key={p.nama}
                 role="option"
                 aria-selected={i === idxSaran}
