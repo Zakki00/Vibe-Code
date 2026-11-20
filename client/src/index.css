@@ -391,6 +391,36 @@ body,
     }
 }
 
+/* Pada panel sempit (split-screen), prioritaskan chat: navigasi dan kontrol turun ke baris kedua. */
+@media (max-width: 70px) {
+    .app-header { column-gap: 1px; }
+    .app-brand-row { gap: 1px; }
+    .app-project-path {
+        order: 3;
+        flex: 1 0 100%;
+        display: block;
+        padding-left: 36px;
+    }
+    .app-header-actions {
+        order: 2;
+        width: 100%;
+        flex: 1 0 100%;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+    .app-header-actions > .app-nav { order: 0; }
+    .app-header-actions > :not(.app-nav) { order: 1; }
+    .app-header-actions > .app-nav,
+    .app-header-actions > :not(.app-nav) { flex-shrink: 0; }
+}
+@media (min-width: 701px) {
+    .app-project-path { display: block; }
+}
+@media (max-width: 420px) {
+    .app-header-actions { flex-wrap: wrap; }
+    .app-header-actions > .relative:last-of-type { margin-left: 0; }
+}
+
 /* Tetap bisa digulir, tetapi scrollbar disembunyikan. */
 .scroll-tipis {
     scrollbar-width: thin;

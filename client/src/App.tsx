@@ -706,6 +706,14 @@ export default function App() {
     return () => clearInterval(t);
   }, [sibuk]);
 
+  useLayoutEffect(() => {
+    const el = mainRef.current;
+    if (!tampilanRouter && el) {
+      el.scrollTop = el.scrollHeight;
+      dekatBawah.current = true;
+    }
+  }, [tampilanRouter]);
+
   useEffect(() => {
     const el = mainRef.current;
     if (el && dekatBawah.current) el.scrollTop = el.scrollHeight;
@@ -1030,12 +1038,21 @@ export default function App() {
         fontFamily: '"Segoe UI Variable", "Segoe UI", system-ui, sans-serif',
       }}
     >
-      <header className="flex items-center gap-3 border-b border-neutral-800 px-4 py-3">
-        <span className="text-base font-semibold tracking-tight flex items-center gap-2">
-          <RobotPixel ukuran={26} sibuk={sibuk} />
-          Claude Code
-        </span>
-        <div className="flex items-center gap-1 rounded-lg border border-neutral-700 bg-neutral-800 p-1">
+      <header className="app-header flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-neutral-800 px-3 py-2 sm:px-4 sm:py-2.5">
+        <div className="app-brand-row flex min-w-0 flex-1 items-center gap-2">
+          <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm font-semibold tracking-tight sm:text-base">
+            <RobotPixel ukuran={26} sibuk={sibuk} />
+            Claude Code
+          </span>
+          <span
+            className="app-project-path min-w-0 flex-1 truncate font-mono text-xs text-neutral-500"
+            title={projectPath}
+          >
+            {projectPath}
+          </span>
+        </div>
+        <div className="app-header-actions flex w-full shrink-0 items-center gap-2 sm:w-auto sm:flex-none">
+          <div className="app-nav flex shrink-0 items-center gap-1 rounded-lg border border-neutral-700 bg-neutral-800 p-1">
           <button
             type="button"
             onClick={() => setTampilanRouter(false)}
@@ -1053,13 +1070,6 @@ export default function App() {
             9Router
           </button>
         </div>
-        <span
-          className="min-w-0 flex-1 truncate font-mono text-xs text-neutral-500"
-          title={projectPath}
-        >
-          {projectPath}
-        </span>
-
         <div className="flex items-center gap-1">
           <div className="relative">
             <select
@@ -1113,6 +1123,7 @@ export default function App() {
           }
           title={terhubung ? "Terhubung" : "Terputus"}
         />
+        </div>
       </header>
 
       {!terhubung && !tampilanRouter && (
@@ -1251,7 +1262,7 @@ export default function App() {
         </div>
       )}
 
-      <footer className="relative border-t border-neutral-800 p-3">
+      {!tampilanRouter && <footer className="relative border-t border-neutral-800 p-3">
         {pilihModel !== null && (
           <div className="absolute inset-x-3 bottom-full mx-auto mb-2 max-w-3xl overflow-hidden rounded-xl border border-neutral-700 bg-neutral-800 shadow-lg">
             <div className="border-b border-neutral-700 px-4 py-1.5 text-xs text-neutral-400">
@@ -1433,7 +1444,7 @@ export default function App() {
             )}
           </div>
         </div>
-      </footer>
+      </footer>}
     </div>
   );
 }
