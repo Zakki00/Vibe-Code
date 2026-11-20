@@ -4,5 +4,10 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  server: { proxy: { "/ws": { target: "ws://localhost:3000", ws: true } } },
+  server: {
+    proxy: {
+      "/ws": { target: "ws://localhost:3000", ws: true },
+      "/uploads": { target: "http://localhost:3000" },
+    },
+  },
 });
