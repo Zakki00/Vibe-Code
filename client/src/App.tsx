@@ -11,6 +11,7 @@ import {
 
 import type { KeyboardEvent, ReactNode } from "react";
 import RobotPixel from "./RobotPixel";
+import BorderIzin from "./BorderIzin";
 import LoadingAnimasi from "./LoadingAnimasi";
 
 const RenderWithThinking = lazy(() => import("./MarkdownRenderer"));
@@ -83,6 +84,7 @@ const PERINTAH = [
     ket: "Info file CLAUDE.md (ingatan proyek) di folder ini",
   },
   { nama: "/9router", ket: "Buka dashboard 9Router" },
+  { nama: "/tools", ket: "Tampilkan tool yang tersedia di sesi ini" },
 ];
 
 const MAKS_TINGGI_INPUT = 260; // sekitar 10 baris
@@ -475,6 +477,11 @@ export default function App() {
   const [projectPath, setProjectPath] = useState("");
   const [, setAplikasiSendiri] = useState(false);
   const [terhubung, setTerhubung] = useState(false);
+  const [izinkanSemua, setIzinkanSemua] = useState(
+    () => localStorage.getItem("vibe-allow-all") === "true",
+  );
+  const izinkanSemuaRef = useRef(izinkanSemua);
+  izinkanSemuaRef.current = izinkanSemua;
   const [tampilanRouter, setTampilanRouter] = useState(false);
   // Pengguna yang memilih mengurangi gerakan langsung melewati animasi pembuka.
   const [animasiAwalSelesai, setAnimasiAwalSelesai] = useState(
@@ -614,8 +621,7 @@ export default function App() {
           );
         }
         if (m.type === "izin") {
-          // Cek jika alat sudah di-"Izinkan Selalu" menggunakan ref untuk latest state
-          if (izinkanSelaluRef.current.has(m.alat)) {
+          if (izinkanSemuaRef.current || izinkanSelaluRef.current.has(m.alat)) {
             kirimWs({ type: "izin", id: m.id, izinkan: true });
           } else {
             setIzin({ id: m.id, alat: m.alat, input: m.input });
@@ -655,6 +661,12 @@ export default function App() {
                 : `Belum ada CLAUDE.md di folder ini.\nBuat file itu untuk menyimpan ingatan proyek: teknologi yang dipakai, aturan, dan keputusan penting.`,
             );
           if (m.command === "project_current") info(`Folder proyek: ${d.path}`);
+          if (m.command === "tools_list") {
+            const daftar = (d.tools ?? [])
+              .map((alat: { name: string; description: string }) => `• ${alat.name} — ${alat.description}`)
+              .join("\n");
+            info(`Tool yang tersedia di Vibe-App:\n${daftar}\n\n${d.note ?? ""}`);
+          }
           if (m.command === "project_change") {
             if (d.success) {
               setProjectPath(d.path);
@@ -780,6 +792,15 @@ export default function App() {
         break;
       case "/memory":
         kirimWs({ type: "command", command: "memory_info" });
+        break;
+      case "/tools":
+        info(
+          "Tool yang tersedia di Vibe-App:\n" +
+            "• Read — Membaca isi file proyek.\n" +
+            "• Glob — Mencari file berdasarkan pola nama.\n" +
+            "• Grep — Mencari teks di dalam file proyek.\n\n" +
+            "Tool untuk mengubah file atau menjalankan perintah tidak diaktifkan."
+        );
         break;
       case "/9router":
         setTampilanRouter(true);
@@ -1040,10 +1061,32 @@ export default function App() {
     >
       <header className="app-header flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-neutral-800 px-3 py-2 sm:px-4 sm:py-2.5">
         <div className="app-brand-row flex min-w-0 flex-1 items-center gap-2">
-          <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm font-semibold tracking-tight sm:text-base">
+          <button
+            type="button"
+            onClick={() => {
+              const aktif = !izinkanSemua;
+              setIzinkanSemua(aktif);
+              izinkanSemuaRef.current = aktif;
+              localStorage.setItem("vibe-allow-all", String(aktif));
+              info(
+                aktif
+                  ? "Mode Izinkan Semua aktif. Semua permintaan izin alat akan disetujui otomatis."
+                  : "Mode Izinkan Semua nonaktif. Permintaan izin alat akan ditanyakan lagi.",
+              );
+            }}
+            aria-pressed={izinkanSemua}
+            title={izinkanSemua ? "Izinkan Semua aktif — klik untuk menonaktifkan" : "Klik untuk mengizinkan semua tindakan alat tanpa konfirmasi"}
+            className={
+              "app-permission-toggle relative isolate flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:text-base " +
+              (izinkanSemua
+                ? "text-orange-200 hover:bg-orange-500/10"
+                : "text-neutral-100 hover:bg-neutral-800")
+            }
+          >
+            <BorderIzin aktif={izinkanSemua} />
             <RobotPixel ukuran={26} sibuk={sibuk} />
             Claude Code
-          </span>
+          </button>
           <span
             className="app-project-path min-w-0 flex-1 truncate font-mono text-xs text-neutral-500"
             title={projectPath}

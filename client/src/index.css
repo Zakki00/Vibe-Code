@@ -392,9 +392,9 @@ body,
 }
 
 /* Pada panel sempit (split-screen), prioritaskan chat: navigasi dan kontrol turun ke baris kedua. */
-@media (max-width: 70px) {
-    .app-header { column-gap: 1px; }
-    .app-brand-row { gap: 1px; }
+@media (max-width: 700px) {
+    .app-header { column-gap: 10px; }
+    .app-brand-row { gap: 2px; }
     .app-project-path {
         order: 3;
         flex: 1 0 100%;
@@ -420,6 +420,9 @@ body,
     .app-header-actions { flex-wrap: wrap; }
     .app-header-actions > .relative:last-of-type { margin-left: 0; }
 }
+
+/* Sakelar izin Claude Code: border digambar oleh komponen BorderIzin (SVG). */
+.app-permission-toggle { background: transparent; }
 
 /* Tetap bisa digulir, tetapi scrollbar disembunyikan. */
 .scroll-tipis {

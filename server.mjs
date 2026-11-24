@@ -334,6 +334,20 @@ wss.on("connection", (ws) => {
                   ...ringkasModel(await bacaDaftarModel()),
                   buka: arg === "buka",
                 });
+      } else if (command === "tools_list") {
+        balas({
+          tools: [
+            { name: "Read", description: "Membaca isi file proyek." },
+            { name: "Glob", description: "Mencari file berdasarkan pola nama." },
+            { name: "Grep", description: "Mencari teks di dalam file proyek." },
+            { name: "Edit", description: "Mengubah bagian tertentu pada file." },
+            { name: "Write", description: "Membuat atau menulis ulang file." },
+            { name: "Bash", description: "Menjalankan perintah terminal." },
+            { name: "WebSearch", description: "Mencari informasi di web." },
+            { name: "WebFetch", description: "Membaca halaman web." },
+          ],
+          note: "Mode Izinkan Semua menyetujui permintaan izin tool otomatis. Tool yang diaktifkan tetap mengikuti konfigurasi server.",
+        });
       } else if (command === "project_current") {
         balas({ path: PROJECT_DIR });
       } else if (command === "session_list") {
@@ -398,7 +412,7 @@ wss.on("connection", (ws) => {
           abortController: ac,
           includePartialMessages: true,
           resume: sessionId ?? undefined,
-          allowedTools: ["Read", "Glob", "Grep"],
+          allowedTools: ["Read", "Glob", "Grep", "Edit", "Write", "Bash", "WebSearch", "WebFetch"],
           canUseTool: (namaAlat, input) =>
             new Promise((selesai) => {
               const id = randomUUID();
